@@ -1,0 +1,97 @@
+[package]
+name = "frost-substrate"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Substrate implementation of the FROST protocol"
+
+[dependencies]
+# Substrate dependencies - Using local path to cloned repository
+frame-support = { path = "../substrate/frame/support", default-features = false }
+frame-system = { path = "../substrate/frame/system", default-features = false }
+frame-executive = { path = "../substrate/frame/executive", default-features = false }
+sp-core = { path = "../substrate/primitives/core", default-features = false }
+sp-runtime = { path = "../substrate/primitives/runtime", default-features = false }
+sp-api = { path = "../substrate/primitives/api", default-features = false }
+sp-std = { path = "../substrate/primitives/std", default-features = false }
+sp-io = { path = "../substrate/primitives/io", default-features = false }
+sp-blockchain = { path = "../substrate/primitives/blockchain", default-features = false }
+
+# GRANDPA dependencies for FROST finality integration
+pallet-grandpa = { path = "../substrate/frame/grandpa", default-features = false }
+finality-grandpa = { version = "0.16.1", default-features = false }
+sp-consensus-grandpa = { path = "../substrate/primitives/consensus/grandpa", default-features = false }
+
+# Codec and serialization
+parity-scale-codec = { version = "3.6.1", default-features = false, features = ["derive"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+
+# FROST protocol
+frost-protocol = { path = "../frost-protocol" }
+
+# Async runtime
+tokio = { version = "1.32", features = ["full"] }
+async-trait = "0.1.74"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Crypto
+blake2 = "0.10"
+sha2 = "0.10"
+rs_merkle = "1.5.0"
+hex = "0.4"
+
+# Logging and metrics
+tracing = "0.1"
+metrics = "0.21"
+
+sp-weights = { version = "20.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    # Core Substrate dependencies
+    "frost-protocol/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-executive/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-api/std",
+    "sp-std/std",
+    "sp-io/std",
+    # "sp-blockchain/std",
+    "sp-weights/std",
+    
+    # GRANDPA dependencies
+    "pallet-grandpa/std",
+    "finality-grandpa/std",
+    "sp-consensus-grandpa/std",
+    
+    # Codec
+    "parity-scale-codec/std",
+    "scale-info/std",
+    
+    # Other dependencies that need std
+    "serde/std",
+]
+
+[dev-dependencies]
+tokio-test = "0.4"
+sp-keyring = { path = "../substrate/primitives/keyring" }
+
+# Alternative: If you prefer using published crates instead of git dependencies
+# Use these versions that are known to be compatible (uncomment and replace above):
+# [dependencies]
+# frame-support = { version = "4.0.0-dev", default-features = false }
+# frame-system = { version = "4.0.0-dev", default-features = false }
+# frame-executive = { version = "4.0.0-dev", default-features = false }
+# sp-core = { version = "7.0.0", default-features = false }
+# sp-runtime = { version = "7.0.0", default-features = false }
+# sp-finality-grandpa = { version = "4.0.0-dev", default-features = false }
+# sp-api = { version = "4.0.0-dev", default-features = false }
+# 
+# [dev-dependencies]
+# sp-keyring = { version = "7.0.0" }
