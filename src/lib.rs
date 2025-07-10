@@ -1,70 +1,21 @@
-// FROST Substrate Implementation
-//! This crate provides a Substrate implementation of the FROST protocol,
-//! enabling cross-chain state verification using GRANDPA finality.
-
-#![allow(unused_imports)]
-#![allow(unused_variables)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use std::{sync::Arc, marker::PhantomData};
 use frame_support::{
     pallet_prelude::*,
     traits::Get,
 };
 use frame_system::pallet_prelude::*;
-use sp_runtime::traits::{Hash, BlakeTwo256};
+use sp_runtime::traits::{Hash, Block as BlockT};
 use sp_std::{prelude::*, vec::Vec};
-use scale_info::TypeInfo;
+use sp_consensus_grandpa::AuthorityList;
+use sp_api::ProvideRuntimeApi;
 
-// Module declarations
-pub mod finality;
-pub mod verification;
-pub mod proof;
-pub mod wrapper_types;
-
-// Re-exports
-pub use finality::GrandpaFinality;
-pub use verification::*;
-pub use proof::*;
-pub use wrapper_types::*;
-
-// Import types from frost-protocol
-use frost_protocol::state::{
-    StateTransition,
-    StateProof,
-    BlockRef,
-    proof::ProofType,
+use crate::{
+    observer::{FrostFinalityObserver, FrostWorker, WatchTarget},
+    routing::SubstrateRouter,
+    proof::MerkleProofGenerator,
 };
-use frost_protocol::message::FrostMessage;
-
-/// Wrapper type for state transitions
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct SubstrateStateTransition(StateTransition);
-
-impl From<StateTransition> for SubstrateStateTransition {
-    fn from(transition: StateTransition) -> Self {
-        Self(transition)
-    }
-}
-
-/// Wrapper type for state proofs
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct SubstrateStateProof(StateProof);
-
-impl From<StateProof> for SubstrateStateProof {
-    fn from(proof: StateProof) -> Self {
-        Self(proof)
-    }
-}
-
-/// Wrapper type for FROST messages
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct SubstrateFrostMessage(FrostMessage);
-
-impl From<FrostMessage> for SubstrateFrostMessage {
-    fn from(msg: FrostMessage) -> Self {
-        Self(msg)
-    }
-}
 
 #[frame_support::pallet]
 pub mod frost_pallet {
@@ -87,6 +38,13 @@ pub mod frost_pallet {
         /// Maximum size of proof data
         #[pallet::constant]
         type MaxProofSize: Get<u32>;
+
+        /// Router configuration
+        type RouterConfig: Get<routing::RouterConfig>;
+
+        /// Client type for runtime API access
+        type Block: BlockT;
+        type Client: ProvideRuntimeApi<Self::Block> + Send + Sync + 'static;
     }
 
     #[pallet::pallet]
@@ -96,142 +54,120 @@ pub mod frost_pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::storage]
-    pub type Transitions<T: Config> = StorageMap<
+    pub type WatchTargets<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
         T::FrostHash,
-        SubstrateStateTransition,
-        OptionQuery
-    >;
-
-    #[pallet::storage]
-    pub type Proofs<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::FrostHash,
-        SubstrateStateProof,
-        OptionQuery
-    >;
-
-    #[pallet::storage]
-    pub type Messages<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::FrostHash,
-        SubstrateFrostMessage,
+        WatchTarget,
         OptionQuery
     >;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// New state transition processed
-        TransitionProcessed {
-            transition_hash: T::FrostHash,
+        /// New watch target registered
+        WatchTargetRegistered {
+            target_hash: T::FrostHash,
         },
-        /// New proof generated
+        /// State transition observed and proof generated
         ProofGenerated {
             proof_hash: T::FrostHash,
+            target_chain: Vec<u8>,
         },
-        /// New message received
-        MessageReceived {
+        /// Message routed to target chain
+        MessageRouted {
             msg_hash: T::FrostHash,
+            target_chain: Vec<u8>,
         },
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Invalid state transition
-        InvalidTransition,
+        /// Invalid watch target
+        InvalidWatchTarget,
         /// Invalid proof
         InvalidProof,
-        /// Invalid message
-        InvalidMessage,
         /// Proof size exceeds limit
         ProofTooLarge,
+        /// Routing failed
+        RoutingFailed,
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+            // Initialize observer if needed
+            Self::ensure_observer();
+            Weight::zero()
+        }
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
-        pub fn submit_transition(
+        pub fn register_watch_target(
             origin: OriginFor<T>,
-            transition: StateTransition,
+            target: WatchTarget,
         ) -> DispatchResult {
             ensure_signed(origin)?;
             
-            // Convert to substrate type
-            let substrate_transition = SubstrateStateTransition::from(transition);
-            
-            // Generate transition hash
-            let transition_hash = T::FrostHash::hash(&substrate_transition.encode());
-            let key_hash = T::FrostHash::from(transition_hash);
-            
-            // Store transition
-            Transitions::<T>::insert(key_hash.clone(), substrate_transition);
-            
-            // Emit event
-            Self::deposit_event(Event::TransitionProcessed { 
-                transition_hash: key_hash.clone() 
-            });
-            
-            Ok(())
-        }
-
-        #[pallet::weight(10_000)]
-        pub fn submit_proof(
-            origin: OriginFor<T>,
-            proof: StateProof,
-        ) -> DispatchResult {
-            ensure_signed(origin)?;
-            
-            // Convert to substrate type
-            let substrate_proof = SubstrateStateProof::from(proof);
-            
-            // Check proof size
+            // Validate target
             ensure!(
-                substrate_proof.0.proof.data.len() <= T::MaxProofSize::get() as usize,
-                Error::<T>::ProofTooLarge
+                !target.module_name.is_empty() && !target.function_name.is_empty(),
+                Error::<T>::InvalidWatchTarget
             );
             
-            // Generate proof hash
-            let proof_hash = T::FrostHash::hash(&substrate_proof.encode());
-            let key_hash = T::FrostHash::from(proof_hash);
+            // Generate target hash
+            let target_hash = T::FrostHash::hash(&target.encode()).into();
             
-            // Store proof
-            Proofs::<T>::insert(key_hash.clone(), substrate_proof);
+            // Store target
+            WatchTargets::<T>::insert(target_hash, target.clone());
+            
+            // Register with observer
+            if let Some(observer) = Self::observer() {
+                observer.register_watch_target(target);
+            }
             
             // Emit event
-            Self::deposit_event(Event::ProofGenerated { 
-                proof_hash: key_hash.clone() 
+            Self::deposit_event(Event::WatchTargetRegistered {
+                target_hash,
             });
             
             Ok(())
         }
+    }
 
-        #[pallet::weight(10_000)]
-        pub fn submit_message(
-            origin: OriginFor<T>,
-            message: FrostMessage,
-        ) -> DispatchResult {
-            ensure_signed(origin)?;
+    impl<T: Config> Pallet<T> {
+        /// Get or create observer instance
+        fn ensure_observer() -> Option<Arc<FrostFinalityObserver<T>>> {
+            static mut OBSERVER: Option<Arc<FrostFinalityObserver<T>>> = None;
             
-            // Convert to substrate type
-            let substrate_message = SubstrateFrostMessage::from(message);
-            
-            // Generate message hash
-            let msg_hash = T::FrostHash::hash(&substrate_message.encode());
-            let key_hash = T::FrostHash::from(msg_hash);
-            
-            // Store message
-            Messages::<T>::insert(key_hash.clone(), substrate_message);
-            
-            // Emit event
-            Self::deposit_event(Event::MessageReceived { 
-                msg_hash: key_hash.clone() 
-            });
-            
-            Ok(())
+            unsafe {
+                if OBSERVER.is_none() {
+                    let client = T::Client::get();
+                    let authority_set = Arc::new(AuthorityList::default());
+                    let proof_generator = Arc::new(MerkleProofGenerator::new(client.clone()));
+                    let router = Arc::new(SubstrateRouter::new(T::RouterConfig::get()));
+
+                    let observer = Arc::new(FrostFinalityObserver::new(
+                        client,
+                        authority_set,
+                        proof_generator,
+                        router,
+                    ));
+
+                    let worker = FrostWorker::new(observer.clone());
+                    tokio::spawn(async move { worker.run().await });
+
+                    OBSERVER = Some(observer);
+                }
+                OBSERVER.clone()
+            }
+        }
+
+        /// Get observer instance
+        fn observer() -> Option<Arc<FrostFinalityObserver<T>>> {
+            Self::ensure_observer()
         }
     }
 }
@@ -241,3 +177,6 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
+
+pub mod routing;
+pub mod observer;

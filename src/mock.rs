@@ -6,6 +6,7 @@ use sp_core::H256;
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     BuildStorage,
+    Perbill,
 };
 use frame_system as system;
 use sp_weights::Weight;
@@ -23,7 +24,7 @@ construct_runtime!(
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
-    pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights::with_sensible_defaults(Weight::from_parts(1024, 0), frame_support::traits::ConstU64::get());
+    pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights::with_sensible_defaults(Weight::from_parts(1024, 0), Perbill::from_percent(75));
 }
 
 impl system::Config for Test {
