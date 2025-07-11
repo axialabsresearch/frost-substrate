@@ -120,32 +120,41 @@ pub struct SubstrateVerificationClient<C, B: BlockT> {
     _phantom: std::marker::PhantomData<B>,
 }
 
+impl<C, B: BlockT> SubstrateVerificationClient<C, B> {
+    pub fn new(client: Arc<C>) -> Self {
+        Self {
+            client,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 #[async_trait]
 impl<C, B> FinalityVerificationClient for SubstrateVerificationClient<C, B>
 where
     B: BlockT,
     C: ProvideRuntimeApi<B> + Send + Sync,
 {
-    async fn verify_block_hash(&self, block_ref: &BlockRef) -> Result<bool, FinalityVerificationError> {
+    async fn verify_block_hash(&self, _block_ref: &BlockRef) -> Result<bool, FinalityVerificationError> {
         // Implementation using substrate client
         Ok(true) // Placeholder
     }
 
-    async fn get_finality_confidence(&self, block_ref: &BlockRef) -> Result<f64, FinalityVerificationError> {
+    async fn get_finality_confidence(&self, _block_ref: &BlockRef) -> Result<f64, FinalityVerificationError> {
         // Implementation using GRANDPA voting data
         Ok(1.0) // Placeholder
     }
 
     async fn verify_chain_rules(
         &self,
-        block_ref: &BlockRef,
-        rules: &ChainRules,
+        _block_ref: &BlockRef,
+        _rules: &ChainRules,
     ) -> Result<bool, FinalityVerificationError> {
         // Implementation using substrate client and GRANDPA data
         Ok(true) // Placeholder
     }
 
-    async fn get_block(&self, block_ref: &BlockRef) -> Result<FrostBlock, FinalityVerificationError> {
+    async fn get_block(&self, _block_ref: &BlockRef) -> Result<FrostBlock, FinalityVerificationError> {
         // Implementation to get block data
         unimplemented!()
     }
@@ -160,7 +169,7 @@ where
         unimplemented!()
     }
 
-    async fn verify_block_inclusion(&self, block_ref: &BlockRef, proof: &[u8]) -> Result<bool, FinalityVerificationError> {
+    async fn verify_block_inclusion(&self, _block_ref: &BlockRef, _proof: &[u8]) -> Result<bool, FinalityVerificationError> {
         // Implementation to verify block inclusion
         unimplemented!()
     }

@@ -1,107 +1,126 @@
-use std::marker::PhantomData;
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
+use std::sync::Arc;
+use std::time::Duration;
 use frost_protocol::{
-    routing::router::{
-        MessageRouter as ProtocolRouter,
-        RouterConfig,
-        RouteStatus,
-        RouteMetrics,
-        RouterHealth,
-        EnhancedRouter,
+    network::NetworkProtocol,
+    routing::{
+        router::{MessageRouter as ProtocolRouter, RouteStatus, RouteMetrics, RouteState},
+        topology::NetworkTopology,
+        RoutingConfig,
     },
     message::FrostMessage,
-    network::NetworkProtocol,
+    error::Error as ProtocolError,
     state::ChainId,
-    Result as ProtocolResult,
 };
-use sp_std::vec::Vec;
-use sp_runtime::codec::{Encode, Decode};
-use scale_info::TypeInfo;
-use async_trait::async_trait;
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
+use frame_system;
+use futures::future::BoxFuture;
+use uuid::Uuid;
 
-use crate::frost_pallet::Config;
+use crate::frost_pallet;
 
-/// Substrate network protocol implementation
-pub struct SubstrateNetwork<T: Config> {
-    _phantom: PhantomData<T>,
+pub struct SubstrateNetwork<T: frost_pallet::Config + Send + Sync + 'static> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
+    _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: Config> SubstrateNetwork<T> {
+impl<T: frost_pallet::Config + Send + Sync + 'static> SubstrateNetwork<T> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
     pub fn new() -> Self {
         Self {
-            _phantom: PhantomData,
+            _phantom: Default::default(),
         }
     }
 }
 
-#[async_trait]
-impl<T: Config> NetworkProtocol for SubstrateNetwork<T> 
+#[async_trait::async_trait]
+impl<T: frost_pallet::Config + Send + Sync + 'static> NetworkProtocol for SubstrateNetwork<T> 
 where
-    T: Send + Sync + 'static
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
 {
-    async fn start(&mut self) -> ProtocolResult<()> {
-        // Initialize substrate network
+    async fn start(&mut self) -> Result<(), ProtocolError> {
         Ok(())
     }
 
-    async fn stop(&mut self) -> ProtocolResult<()> {
-        // Cleanup substrate network
+    async fn stop(&mut self) -> Result<(), ProtocolError> {
         Ok(())
     }
 
-    async fn broadcast(&self, message: FrostMessage) -> ProtocolResult<()> {
-        // Use substrate gossip messaging
+    async fn broadcast(&self, _message: FrostMessage) -> Result<(), ProtocolError> {
         Ok(())
     }
 
-    async fn send_to(&self, peer_id: &str, message: FrostMessage) -> ProtocolResult<()> {
-        // Use substrate direct messaging
+    async fn send_to(&self, _peer_id: &str, _message: FrostMessage) -> Result<(), ProtocolError> {
         Ok(())
     }
 
-    async fn get_peers(&self) -> ProtocolResult<Vec<String>> {
-        // Get substrate network peers
+    async fn get_peers(&self) -> Result<Vec<String>, ProtocolError> {
         Ok(Vec::new())
     }
 }
 
-/// Substrate router implementation using frost-protocol
-pub struct SubstrateRouter<T: Config> {
-    inner: EnhancedRouter<SubstrateNetwork<T>>,
+pub struct SubstrateRouter<T: frost_pallet::Config + Send + Sync + 'static> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
+    config: RoutingConfig,
+    _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: Config> SubstrateRouter<T> {
-    pub fn new(config: RouterConfig) -> Self {
-        let network = SubstrateNetwork::new();
+impl<T: frost_pallet::Config + Send + Sync + 'static> SubstrateRouter<T> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
+    pub fn new(config: RoutingConfig) -> Self {
         Self {
-            inner: EnhancedRouter::new(config, network),
+            config,
+            _phantom: Default::default(),
         }
     }
-
-    pub async fn health(&self) -> RouterHealth {
-        self.inner.health().await
-    }
 }
 
-#[async_trait]
-impl<T: Config> ProtocolRouter for SubstrateRouter<T> 
+#[async_trait::async_trait]
+impl<T: frost_pallet::Config + Send + Sync + 'static> ProtocolRouter for SubstrateRouter<T> 
 where
-    T: Send + Sync + 'static
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
 {
-    async fn route(&self, message: FrostMessage, target: ChainId) -> ProtocolResult<RouteStatus> {
-        self.inner.route(message, target).await
+    async fn route_message(&self, _message: FrostMessage) -> Result<RouteStatus, ProtocolError> {
+        Ok(RouteStatus {
+            message_id: Uuid::new_v4(),
+            route: Vec::new(),
+            current_hop: 0,
+            estimated_time: Duration::from_secs(0),
+            state: RouteState::InProgress,
+        })
     }
 
-    async fn update_routes(&self, routes: Vec<(ChainId, String)>) -> ProtocolResult<()> {
-        self.inner.update_routes(routes).await
+    async fn get_route(&self, _from: ChainId, _to: ChainId) -> Result<Vec<ChainId>, ProtocolError> {
+        Ok(Vec::new())
     }
 
-    async fn get_routes(&self) -> ProtocolResult<Vec<(ChainId, String)>> {
-        self.inner.get_routes().await
+    async fn update_topology(&mut self, _topology: NetworkTopology) -> Result<(), ProtocolError> {
+        Ok(())
     }
 
-    async fn get_metrics(&self) -> ProtocolResult<RouteMetrics> {
-        self.inner.get_metrics().await
+    async fn get_metrics(&self) -> Result<RouteMetrics, ProtocolError> {
+        Ok(RouteMetrics {
+            active_routes: 0,
+            completed_routes: 0,
+            failed_routes: 0,
+            average_route_time: 0.0,
+            route_success_rate: 0.0,
+        })
     }
 }
-
-pub use frost_protocol::routing::router::RouterConfig; 

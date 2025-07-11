@@ -1,12 +1,16 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 
-use std::{sync::Arc, marker::PhantomData};
+#![cfg_attr(not(feature = "std"), no_std)]
+#![recursion_limit="1024"]
+
+use std::sync::Arc;
 use frame_support::{
     pallet_prelude::*,
     traits::Get,
 };
 use frame_system::pallet_prelude::*;
-use sp_runtime::traits::{Hash, Block as BlockT};
+use sp_runtime::traits::{Hash, Block as BlockT, Header as HeaderT};
 use sp_std::{prelude::*, vec::Vec};
 use sp_consensus_grandpa::AuthorityList;
 use sp_api::ProvideRuntimeApi;
@@ -16,6 +20,7 @@ use crate::{
     routing::SubstrateRouter,
     proof::MerkleProofGenerator,
 };
+use frost_protocol::routing::RoutingConfig;
 
 #[frame_support::pallet]
 pub mod frost_pallet {
@@ -24,12 +29,16 @@ pub mod frost_pallet {
     pub const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + Send + Sync + 'static 
+    where
+        <Self as frame_system::Config>::Block: BlockT,
+        <<Self as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    {
         /// The overarching event type
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent> + Parameter + Member;
         
         /// Type for block hash
-        type FrostHash: Hash + Member + Parameter + MaxEncodedLen + TypeInfo + From<<Self::FrostHash as Hash>::Output> + Clone;
+        type FrostHash: Hash + Member + Parameter + MaxEncodedLen + TypeInfo + From<<Self::FrostHash as Hash>::Output> + Clone + Copy;
         
         /// Minimum number of block confirmations required
         #[pallet::constant]
@@ -40,11 +49,10 @@ pub mod frost_pallet {
         type MaxProofSize: Get<u32>;
 
         /// Router configuration
-        type RouterConfig: Get<routing::RouterConfig>;
+        type RouterConfig: Get<RoutingConfig>;
 
         /// Client type for runtime API access
-        type Block: BlockT;
-        type Client: ProvideRuntimeApi<Self::Block> + Send + Sync + 'static;
+        type Client: ProvideRuntimeApi<<Self as frame_system::Config>::Block> + Send + Sync + 'static;
     }
 
     #[pallet::pallet]
@@ -64,7 +72,11 @@ pub mod frost_pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    pub enum Event<T: Config> {
+    pub enum Event<T: Config> 
+    where
+        <T as frame_system::Config>::Block: BlockT,
+        <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    {
         /// New watch target registered
         WatchTargetRegistered {
             target_hash: T::FrostHash,
@@ -94,7 +106,11 @@ pub mod frost_pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> 
+    where
+        <T as frame_system::Config>::Block: BlockT,
+        <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             // Initialize observer if needed
             Self::ensure_observer();
@@ -103,7 +119,11 @@ pub mod frost_pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T> 
+    where
+        <T as frame_system::Config>::Block: BlockT,
+        <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    {
         #[pallet::weight(10_000)]
         pub fn register_watch_target(
             origin: OriginFor<T>,
@@ -120,49 +140,31 @@ pub mod frost_pallet {
             // Generate target hash
             let target_hash = T::FrostHash::hash(&target.encode()).into();
             
-            // Store target
-            WatchTargets::<T>::insert(target_hash, target.clone());
+            WatchTargets::<T>::insert(&target_hash, target.clone());
             
-            // Register with observer
             if let Some(observer) = Self::observer() {
                 observer.register_watch_target(target);
             }
             
             // Emit event
             Self::deposit_event(Event::WatchTargetRegistered {
-                target_hash,
+                target_hash: target_hash,
             });
             
             Ok(())
         }
     }
 
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T> 
+    where
+        <T as frame_system::Config>::Block: BlockT,
+        <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    {
         /// Get or create observer instance
         fn ensure_observer() -> Option<Arc<FrostFinalityObserver<T>>> {
-            static mut OBSERVER: Option<Arc<FrostFinalityObserver<T>>> = None;
-            
-            unsafe {
-                if OBSERVER.is_none() {
-                    let client = T::Client::get();
-                    let authority_set = Arc::new(AuthorityList::default());
-                    let proof_generator = Arc::new(MerkleProofGenerator::new(client.clone()));
-                    let router = Arc::new(SubstrateRouter::new(T::RouterConfig::get()));
-
-                    let observer = Arc::new(FrostFinalityObserver::new(
-                        client,
-                        authority_set,
-                        proof_generator,
-                        router,
-                    ));
-
-                    let worker = FrostWorker::new(observer.clone());
-                    tokio::spawn(async move { worker.run().await });
-
-                    OBSERVER = Some(observer);
-                }
-                OBSERVER.clone()
-            }
+            // TODO: I'll need to properly implemented, likely by passing the observer
+            // instance into the pallet during runtime setup.
+            None
         }
 
         /// Get observer instance
@@ -170,8 +172,7 @@ pub mod frost_pallet {
             Self::ensure_observer()
         }
     }
-}
-
+} 
 #[cfg(test)]
 mod mock;
 
@@ -180,3 +181,5 @@ mod tests;
 
 pub mod routing;
 pub mod observer;
+pub mod proof;
+pub mod finality;

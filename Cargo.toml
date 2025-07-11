@@ -16,6 +16,7 @@ sp-api = { path = "../substrate/primitives/api", default-features = false }
 sp-std = { path = "../substrate/primitives/std", default-features = false }
 sp-io = { path = "../substrate/primitives/io", default-features = false }
 sp-blockchain = { path = "../substrate/primitives/blockchain", default-features = false }
+sp-weights = { path = "../substrate/primitives/weights", default-features = false }
 
 # GRANDPA dependencies for FROST finality integration
 pallet-grandpa = { path = "../substrate/frame/grandpa", default-features = false }
@@ -47,7 +48,13 @@ hex = "0.4"
 tracing = "0.1"
 metrics = "0.21"
 
-sp-weights = { version = "20.0.0", default-features = false }
+# Concurrency and synchronization
+once_cell = "1.18"
+parking_lot = "0.12"
+
+log = "0.4.27"
+futures = "0.3.31"
+uuid = { workspace = true, features = ["v4"] }
 
 [features]
 default = ["std"]
@@ -82,16 +89,4 @@ std = [
 tokio-test = "0.4"
 sp-keyring = { path = "../substrate/primitives/keyring" }
 
-# Alternative: If you prefer using published crates instead of git dependencies
-# Use these versions that are known to be compatible (uncomment and replace above):
-# [dependencies]
-# frame-support = { version = "4.0.0-dev", default-features = false }
-# frame-system = { version = "4.0.0-dev", default-features = false }
-# frame-executive = { version = "4.0.0-dev", default-features = false }
-# sp-core = { version = "7.0.0", default-features = false }
-# sp-runtime = { version = "7.0.0", default-features = false }
-# sp-finality-grandpa = { version = "4.0.0-dev", default-features = false }
-# sp-api = { version = "4.0.0-dev", default-features = false }
-# 
-# [dev-dependencies]
-# sp-keyring = { version = "7.0.0" }
+

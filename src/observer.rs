@@ -1,32 +1,61 @@
-use std::{sync::Arc, marker::PhantomData};
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
+use std::{sync::Arc, marker::PhantomData, ops::Deref};
+use parking_lot::RwLock;
 use frost_protocol::{
-    state::{BlockRef, StateTransition, StateProof},
+    state::{BlockRef, StateTransition, ChainId, StateRoot, transition::TransitionMetadata},
     finality::predicate::FinalityPredicate,
-    types::ProofType,
     error::Error as ProtocolError,
+    routing::router::MessageRouter,
+    message::FrostMessage,
 };
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
-use sp_consensus_grandpa::{
-    AuthorityList,
-    GRANDPA_ENGINE_ID,
-    GrandpaJustification,
-    VersionedAuthorityList,
-};
-use frame_support::traits::Get;
-use codec::{Encode, Decode};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero};
+use sp_api::{HeaderT as ApiHeaderT, ProvideRuntimeApi};
+use sp_consensus_grandpa::{AuthorityList, GrandpaJustification};
+use parity_scale_codec::{Encode, Decode, EncodeLike, WrapperTypeEncode, WrapperTypeDecode};
 use scale_info::TypeInfo;
 use frame_system::EventRecord;
-use log::{error, info};
+use log::error;
+use futures::{StreamExt, Stream};
 
 use crate::{
     frost_pallet::Config,
     finality::{GrandpaFinality, SubstrateVerificationClient},
     proof::ProofGenerator,
-    routing::MessageRouter,
 };
 
+#[derive(Debug)]
+pub enum ErrorKind {
+    InvalidBlockHash,
+    InvalidBlockNumber,
+    RuntimeApiError(sp_api::ApiError),
+    StateNotFound,
+    ProofGenerationFailed,
+    MessageRoutingFailed,
+}
+
+impl From<ErrorKind> for ProtocolError {
+    fn from(kind: ErrorKind) -> Self {
+        match kind {
+            ErrorKind::InvalidBlockHash => ProtocolError::Custom("Invalid block hash".into()),
+            ErrorKind::InvalidBlockNumber => ProtocolError::Custom("Invalid block number".into()),
+            ErrorKind::RuntimeApiError(e) => ProtocolError::Custom(format!("Runtime API error: {}", e)),
+            ErrorKind::StateNotFound => ProtocolError::Custom("State not found".into()),
+            ErrorKind::ProofGenerationFailed => ProtocolError::Custom("Failed to generate proof".into()),
+            ErrorKind::MessageRoutingFailed => ProtocolError::Custom("Failed to route message".into()),
+        }
+    }
+}
+
+impl From<sp_api::ApiError> for ErrorKind {
+    fn from(error: sp_api::ApiError) -> Self {
+        ErrorKind::RuntimeApiError(error)
+    }
+}
+
 /// Target to watch for finality
-#[derive(Clone, Encode, Decode, TypeInfo)]
+#[derive(Clone, Encode, Decode, TypeInfo, Debug, PartialEq, Eq)]
 pub struct WatchTarget {
     /// Module to watch
     pub module_name: Vec<u8>,
@@ -39,14 +68,16 @@ pub struct WatchTarget {
 }
 
 /// Finality notification from GRANDPA
-#[derive(Debug)]
-pub struct FinalityNotification<B: BlockT> {
+pub struct FinalityNotification<B: BlockT> 
+where
+    B::Header: HeaderT,
+{
     /// Hash of the finalized block
-    pub hash: B::Hash,
+    pub hash: <B as BlockT>::Hash,
     /// Number of the finalized block
-    pub number: <B::Header as HeaderT>::Number,
+    pub number: NumberFor<B>,
     /// Justification, if available
-    pub justification: Option<GrandpaJustification<B>>,
+    pub justification: Option<GrandpaJustification<B::Header>>,
 }
 
 type Result<T> = std::result::Result<T, ProtocolError>;
@@ -57,88 +88,143 @@ pub trait FinalityObserver: Send + Sync {
 }
 
 /// Core finality observer that manages watch targets and proof generation
-pub struct FrostFinalityObserver<T: Config> {
-    /// Underlying GRANDPA finality checker
-    finality: GrandpaFinality<T::Client, T::Block>,
+pub struct FrostFinalityObserver<T: Config + Send + Sync + 'static> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
     /// Registered watch targets
-    watch_targets: Vec<WatchTarget>,
+    watch_targets: RwLock<Vec<WatchTarget>>,
     /// Proof generator
     proof_generator: Arc<dyn ProofGenerator>,
     /// Message router
     message_router: Arc<dyn MessageRouter>,
+    /// Client reference
+    client: Arc<T::Client>,
+    /// Finality checker
+    finality: Arc<GrandpaFinality<T::Client, <T as frame_system::Config>::Block>>,
     /// Phantom data
     _phantom: PhantomData<T>,
 }
 
-impl<T: Config> FrostFinalityObserver<T> {
+impl<T: Config + Send + Sync + 'static> FrostFinalityObserver<T> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
     /// Create new observer instance
     pub fn new(
         client: Arc<T::Client>,
-        authority_set: Arc<AuthorityList>,
         proof_generator: Arc<dyn ProofGenerator>,
         message_router: Arc<dyn MessageRouter>,
     ) -> Self {
-        // Create verification client
-        let verification_client = SubstrateVerificationClient::new(
+        let verification_client = Arc::new(SubstrateVerificationClient::new(client.clone()));
+        let finality = Arc::new(GrandpaFinality::new(
             client.clone(),
-            authority_set,
             Default::default(),
-        );
-
-        // Create finality checker
-        let finality = GrandpaFinality::new(
-            client,
-            Default::default(),
-            Arc::new(verification_client),
-        );
+            verification_client,
+        ));
 
         Self {
-            finality,
-            watch_targets: Vec::new(),
+            watch_targets: RwLock::new(Vec::new()),
             proof_generator,
             message_router,
+            client,
+            finality,
             _phantom: PhantomData,
         }
     }
 
     /// Register a new watch target
-    pub fn register_watch_target(&mut self, target: WatchTarget) {
-        self.watch_targets.push(target);
+    pub fn register_watch_target(&self, target: WatchTarget) {
+        let mut targets = self.watch_targets.write();
+        targets.push(target);
+    }
+
+    /// Generate state transition for matched target
+    fn generate_state_transition(
+        &self,
+        block_ref: &BlockRef,
+        target: &WatchTarget,
+    ) -> Result<StateTransition> {
+        // Convert block hash properly
+        let block_hash_bytes: [u8; 32] = block_ref.hash
+            .as_ref()
+            .try_into()
+            .map_err(|_| ErrorKind::InvalidBlockHash)?;
+
+        // let state = self.client
+        //     .runtime_api()
+        //     .state_at(&block_hash_bytes.into())
+        //     .map_err(ErrorKind::from)?;
+
+        // let relevant_state = state
+        //     .get_storage(target.module_name.as_slice())
+        //     .ok_or(ErrorKind::StateNotFound)?;
+
+        Ok(StateTransition {
+            chain_id: block_ref.chain_id.clone(),
+            block_height: block_ref.number,
+            pre_state: StateRoot {
+                block_ref: Default::default(),
+                root_hash: [0; 32],
+                metadata: None,
+            },
+            post_state: Default::default(),
+            transition_proof: Default::default(),
+            metadata: Default::default(),
+        })
     }
 
     /// Handle finality notification from GRANDPA
     pub async fn handle_finality_notification(
         &self,
-        notification: FinalityNotification<T::Block>,
+        notification: FinalityNotification<<T as frame_system::Config>::Block>,
     ) -> Result<()> {
-        // Convert to BlockRef
+        // Convert hash properly
+        let hash_bytes: [u8; 32] = notification.hash
+            .as_ref()
+            .try_into()
+            .map_err(|_| ErrorKind::InvalidBlockHash)?;
+
+        // Convert block number properly
+        let block_number: u64 = notification.number
+            .try_into()
+            .map_err(|_| ErrorKind::InvalidBlockNumber)?;
+
         let block_ref = BlockRef {
-            chain_id: 0, // Set appropriate chain ID
-            number: notification.number.into(),
-            hash: notification.hash.encode(),
+            chain_id: ChainId::default(),
+            number: block_number,
+            hash: hash_bytes,
         };
 
-        // Verify finality using existing GrandpaFinality
         if !self.finality.is_final(&block_ref).await? {
             return Ok(());
         }
 
-        // Check all watch targets
-        for target in &self.watch_targets {
+        // Clone targets to avoid holding the lock across await points
+        let targets = {
+            let guard = self.watch_targets.read();
+            guard.clone()
+        };
+
+        for target in targets.iter() {
             if self.matches_watch_target(&block_ref, target).await? {
-                // Generate state transition
                 let transition = self.generate_state_transition(&block_ref, target)?;
-                
-                // Generate proof using existing generator
                 let proof = self.proof_generator
                     .generate_proof(&transition, &Default::default())
-                    .await?;
+                    .await
+                    .map_err(|_| ErrorKind::ProofGenerationFailed)?;
 
-                // Route proof to target chain
-                self.message_router.route_message(
-                    target.target_chain.clone(),
-                    proof.into(),
-                )?;
+                self.message_router
+                    .route_message(FrostMessage::new(
+                        frost_protocol::message::MessageType::StateProof,
+                        proof.encode(),
+                        "source".to_string(),
+                        None,
+                    ))
+                    .await
+                    .map_err(|_| ErrorKind::MessageRoutingFailed)?;
             }
         }
 
@@ -151,104 +237,101 @@ impl<T: Config> FrostFinalityObserver<T> {
         block_ref: &BlockRef,
         target: &WatchTarget,
     ) -> Result<bool> {
-        // Get block events
-        let events = self.client
-            .runtime_api()
-            .events_at(&block_ref.hash.into())?;
+        // Convert hash for API call
+        let block_hash_bytes: [u8; 32] = block_ref.hash
+            .as_ref()
+            .try_into()
+            .map_err(|_| ErrorKind::InvalidBlockHash)?;
+
+        // Get block events - we'll need to implement the actual API call
+        // let events = self.client
+        //     .runtime_api()
+        //     .events_at(&block_hash_bytes.into())?;
+
+        // For now, I'll just use empty vector as placeholder
+        let events = Vec::<EventRecord<<T as Config>::RuntimeEvent, <T as frame_system::Config>::Hash>>::new();
 
         // Check if any events match our target
-        for event in events {
-            if let EventRecord { 
-                phase,
+        for event_record in events {
+            let EventRecord { 
+                phase: _,
                 event,
-                topics,
-            } = event {
-                // Check if event is from watched module
-                if event.module_name() == target.module_name.as_slice() {
-                    // If watching for specific function
-                    if event.function_name() == target.function_name.as_slice() {
-                        // If watching for specific message hash
-                        if let Some(msg_hash) = &target.message_hash {
-                            // Check if event contains our message hash
-                            if event.data().contains(msg_hash) {
-                                return Ok(true);
-                            }
-                        } else {
-                            // No specific message hash required
-                            return Ok(true);
-                        }
-                    }
+                topics: _,
+            } = event_record;
+
+            // Pattern match on the runtime event instead of calling methods
+            // We'll replace this with actual pattern matching based on the RuntimeEvent enum
+            match event {
+                // Example pattern matching - replace with your actual RuntimeEvent variants
+                // RuntimeEvent::YourPallet(pallet_event) => {
+                //     match pallet_event {
+                //         YourPalletEvent::TargetEvent { data, .. } => {
+                //             if let Some(msg_hash) = &target.message_hash {
+                //                 if data.contains(msg_hash) {
+                //                     return Ok(true);
+                //                 }
+                //             } else {
+                //                 return Ok(true);
+                //             }
+                //         }
+                //         _ => {}
+                //     }
+                // }
+                _ => {
+                    // This is a placeholder logic - we'll need to implement actual event matching
+                    // based on the specific RuntimeEvent structure
                 }
             }
         }
 
         Ok(false)
     }
-
-    /// Generate state transition for matched target
-    fn generate_state_transition(
-        &self,
-        block_ref: &BlockRef,
-        target: &WatchTarget,
-    ) -> Result<StateTransition> {
-        // Get block state
-        let state = self.client
-            .runtime_api()
-            .state_at(&block_ref.hash.into())?;
-
-        // Get only the relevant state for this target
-        let relevant_state = state
-            .get_storage(target.module_name.as_slice())
-            .filter(|s| {
-                // Only include state relevant to the watched function
-                s.function_name() == target.function_name.as_slice()
-            });
-
-        // Create minimal state transition
-        Ok(StateTransition {
-            pre_state: relevant_state.clone(),
-            post_state: relevant_state,
-            block_ref: block_ref.clone(),
-            proof_type: ProofType::Merkle,
-        })
-    }
 }
 
 #[async_trait::async_trait]
-impl<T: Config> FinalityObserver for FrostFinalityObserver<T> {
+impl<T: Config + Send + Sync + 'static> FinalityObserver for FrostFinalityObserver<T> 
+where
+    <T as frame_system::Config>::Block: BlockT,
+    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+{
     async fn on_block_finalized(&self, block: BlockRef) -> Result<()> {
-        // This gets called by the background worker
+        let hash = <<T as frame_system::Config>::Block as BlockT>::Hash::decode(&mut &block.hash[..])
+            .map_err(|_| ErrorKind::InvalidBlockHash)?;
+        let number = NumberFor::<<T as frame_system::Config>::Block>::try_from(block.number)
+            .map_err(|_| ErrorKind::InvalidBlockNumber)?;
+
         let notification = FinalityNotification {
-            hash: block.hash.clone(),
-            number: block.number,
-            justification: None, // Would be populated from actual notification
+            hash,
+            number,
+            justification: None,
         };
 
-        if let Err(e) = self.handle_finality_notification(notification).await {
-            // Log error but don't fail
-            error!("Error handling finality: {:?}", e);
-        }
-        Ok(())
+        self.handle_finality_notification(notification).await
     }
 }
 
 /// Background worker that subscribes to GRANDPA notifications
-pub struct FrostWorker<T: Config> {
+pub struct FrostWorker<T: Config + Send + Sync + 'static> 
+where
+    <T as frame_system::Config>::Block: BlockT + HeaderT,
+{
     observer: Arc<FrostFinalityObserver<T>>,
 }
 
-impl<T: Config> FrostWorker<T> {
+impl<T: Config + Send + Sync + 'static> FrostWorker<T> 
+where
+    <T as frame_system::Config>::Block: BlockT + HeaderT,
+{
     pub fn new(observer: Arc<FrostFinalityObserver<T>>) -> Self {
         Self { observer }
     }
 
-    /// Start the worker
     pub async fn run(&self) {
-        // Subscribe to GRANDPA finality notifications
-        let mut finality_stream = // ... get finality notification stream
-
-        while let Some(notification) = finality_stream.next().await {
-            self.observer.handle_finality_notification(notification).await;
-        };
+        // let mut finality_stream = self.observer.finality.subscribe_finality();
+        // while let Some(notification) = finality_stream.next().await {
+        //     if let Err(e) = self.observer.handle_finality_notification(notification).await {
+        //         error!("Error handling finality notification: {:?}", e);
+        //     }
+        // }
     }
 } 
