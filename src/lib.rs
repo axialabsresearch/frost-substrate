@@ -178,9 +178,26 @@ pub mod ssmp_pallet {
     {
         /// Get or create observer instance
         fn ensure_observer() -> Option<Arc<SSMPObserver<T>>> {
-            // TODO: I'll need to properly implemented, likely by passing the observer
-            // instance into the pallet during runtime setup.
-            None
+            static OBSERVER: Lazy<RwLock<Option<Arc<SSMPObserver<T>>>>> = Lazy::new(|| RwLock::new(None));
+            
+            let mut observer = OBSERVER.write();
+            if observer.is_none() {
+                // Initialize components
+                let client = T::Client::default();
+                let proof_gen = Arc::new(MerkleProofGenerator::new());
+                let router = T::MessageRouter::default();
+
+                // Create observer
+                let new_observer = SSMPObserver::new(
+                    Arc::new(client),
+                    proof_gen,
+                    router,
+                );
+
+                *observer = Some(Arc::new(new_observer));
+            }
+            
+            observer.clone()
         }
 
         /// Get observer instance
