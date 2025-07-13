@@ -19,9 +19,9 @@ use frame_system;
 use futures::future::BoxFuture;
 use uuid::Uuid;
 
-use crate::frost_pallet;
+use crate::ssmp_pallet;
 
-pub struct SubstrateNetwork<T: frost_pallet::Config + Send + Sync + 'static> 
+pub struct SubstrateNetwork<T: ssmp_pallet::Config + Send + Sync + 'static> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
@@ -29,7 +29,7 @@ where
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: frost_pallet::Config + Send + Sync + 'static> SubstrateNetwork<T> 
+impl<T: ssmp_pallet::Config + Send + Sync + 'static> SubstrateNetwork<T> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
@@ -42,7 +42,7 @@ where
 }
 
 #[async_trait::async_trait]
-impl<T: frost_pallet::Config + Send + Sync + 'static> NetworkProtocol for SubstrateNetwork<T> 
+impl<T: ssmp_pallet::Config + Send + Sync + 'static> NetworkProtocol for SubstrateNetwork<T> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
@@ -68,7 +68,7 @@ where
     }
 }
 
-pub struct SubstrateRouter<T: frost_pallet::Config + Send + Sync + 'static> 
+pub struct SubstrateRouter<T: ssmp_pallet::Config + Send + Sync + 'static> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
@@ -77,7 +77,7 @@ where
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: frost_pallet::Config + Send + Sync + 'static> SubstrateRouter<T> 
+impl<T: ssmp_pallet::Config + Send + Sync + 'static> SubstrateRouter<T> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
@@ -91,7 +91,7 @@ where
 }
 
 #[async_trait::async_trait]
-impl<T: frost_pallet::Config + Send + Sync + 'static> ProtocolRouter for SubstrateRouter<T> 
+impl<T: ssmp_pallet::Config + Send + Sync + 'static> ProtocolRouter for SubstrateRouter<T> 
 where
     <T as frame_system::Config>::Block: BlockT,
     <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,

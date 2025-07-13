@@ -1,7 +1,8 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-use std::{sync::Arc, marker::PhantomData, ops::Deref};
+use crate::ssmp_pallet;
+use std::{sync::Arc, marker::PhantomData, ops::Deref, fmt::Debug};
 use parking_lot::RwLock;
 use frost_protocol::{
     state::{BlockRef, StateTransition, ChainId, StateRoot, transition::TransitionMetadata},
@@ -10,18 +11,22 @@ use frost_protocol::{
     routing::router::MessageRouter,
     message::FrostMessage,
 };
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero, SaturatedConversion, Saturating};
 use sp_api::{HeaderT as ApiHeaderT, ProvideRuntimeApi};
+use sp_blockchain::{HeaderBackend, Backend as BlockBackend};
 use sp_consensus_grandpa::{AuthorityList, GrandpaJustification};
 use parity_scale_codec::{Encode, Decode, EncodeLike, WrapperTypeEncode, WrapperTypeDecode};
 use scale_info::TypeInfo;
 use frame_system::EventRecord;
 use log::error;
 use futures::{StreamExt, Stream};
+use finality_grandpa::voter_set::VoterSet;
+use sp_core::H256;
+use frame_support::{Parameter, pallet_prelude::Member};
 
 use crate::{
-    frost_pallet::Config,
-    finality::{GrandpaFinality, SubstrateVerificationClient},
+    ssmp_pallet::Config,
+    finality::{GrandpaFinality, SubstrateVerificationClient, GrandpaVerificationParams, ChainConfig},
     proof::ProofGenerator,
 };
 
@@ -87,48 +92,58 @@ pub trait FinalityObserver: Send + Sync {
     async fn on_block_finalized(&self, block: BlockRef) -> Result<()>;
 }
 
-/// Core finality observer that manages watch targets and proof generation
-pub struct FrostFinalityObserver<T: Config + Send + Sync + 'static> 
-where
-    <T as frame_system::Config>::Block: BlockT,
-    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+/// Core state monitoring observer that manages watch targets and proof generation
+pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+where   
+<T as ssmp_pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
 {
     /// Registered watch targets
     watch_targets: RwLock<Vec<WatchTarget>>,
     /// Proof generator
     proof_generator: Arc<dyn ProofGenerator>,
-    /// Message router
-    message_router: Arc<dyn MessageRouter>,
+    /// Optional message router
+    message_router: Option<Arc<dyn MessageRouter + Send + Sync>>,
     /// Client reference
     client: Arc<T::Client>,
     /// Finality checker
-    finality: Arc<GrandpaFinality<T::Client, <T as frame_system::Config>::Block>>,
+    finality: Arc<GrandpaFinality<T::Client, <T as ssmp_pallet::Config>::Block>>,
     /// Phantom data
     _phantom: PhantomData<T>,
 }
 
-impl<T: Config + Send + Sync + 'static> FrostFinalityObserver<T> 
+impl<T: Config + Send + Sync + 'static> SSMPObserver<T> 
 where
-    <T as frame_system::Config>::Block: BlockT,
-    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    <T as ssmp_pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
+    NumberFor<<T as ssmp_pallet::Config>::Block>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
 {
     /// Create new observer instance
     pub fn new(
         client: Arc<T::Client>,
         proof_generator: Arc<dyn ProofGenerator>,
-        message_router: Arc<dyn MessageRouter>,
-    ) -> Self {
-        let verification_client = Arc::new(SubstrateVerificationClient::new(client.clone()));
+        message_router: T::MessageRouter,
+    ) -> Self where <<<T as ssmp_pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64> {
+        let params = GrandpaVerificationParams::default();
+        let chain_config = ChainConfig::default();
+        let voter_set = VoterSet::new(Vec::new()).expect("Empty voter set is valid");
+        
+        let verification_client = Arc::new(SubstrateVerificationClient::new(
+            client.clone(),
+            voter_set.clone(),
+            params.clone(),
+            chain_config.clone(),
+        ));
+
         let finality = Arc::new(GrandpaFinality::new(
             client.clone(),
             Default::default(),
             verification_client,
+            Vec::new(), // Empty initial authority list
         ));
 
         Self {
             watch_targets: RwLock::new(Vec::new()),
             proof_generator,
-            message_router,
+            message_router: message_router.into(),
             client,
             finality,
             _phantom: PhantomData,
@@ -179,7 +194,7 @@ where
     /// Handle finality notification from GRANDPA
     pub async fn handle_finality_notification(
         &self,
-        notification: FinalityNotification<<T as frame_system::Config>::Block>,
+        notification: FinalityNotification<<T as ssmp_pallet::Config>::Block>,
     ) -> Result<()> {
         // Convert hash properly
         let hash_bytes: [u8; 32] = notification.hash
@@ -216,8 +231,9 @@ where
                     .await
                     .map_err(|_| ErrorKind::ProofGenerationFailed)?;
 
-                self.message_router
-                    .route_message(FrostMessage::new(
+                // Only attempt routing if a router is configured
+                if let Some(router) = &self.message_router {
+                    router.route_message(FrostMessage::new(
                         frost_protocol::message::MessageType::StateProof,
                         proof.encode(),
                         "source".to_string(),
@@ -225,6 +241,7 @@ where
                     ))
                     .await
                     .map_err(|_| ErrorKind::MessageRoutingFailed)?;
+                }
             }
         }
 
@@ -262,7 +279,7 @@ where
             // Pattern match on the runtime event instead of calling methods
             // We'll replace this with actual pattern matching based on the RuntimeEvent enum
             match event {
-                // Example pattern matching - replace with your actual RuntimeEvent variants
+                // Example pattern matching - replace with our actual RuntimeEvent variants
                 // RuntimeEvent::YourPallet(pallet_event) => {
                 //     match pallet_event {
                 //         YourPalletEvent::TargetEvent { data, .. } => {
@@ -289,18 +306,18 @@ where
 }
 
 #[async_trait::async_trait]
-impl<T: Config + Send + Sync + 'static> FinalityObserver for FrostFinalityObserver<T> 
+impl<T: Config + Send + Sync + 'static> FinalityObserver for SSMPObserver<T> 
 where
-    <T as frame_system::Config>::Block: BlockT,
-    <<T as frame_system::Config>::Block as BlockT>::Header: HeaderT,
+    <T as ssmp_pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
+    NumberFor<<T as ssmp_pallet::Config>::Block>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
 {
     async fn on_block_finalized(&self, block: BlockRef) -> Result<()> {
-        let hash = <<T as frame_system::Config>::Block as BlockT>::Hash::decode(&mut &block.hash[..])
+        let hash = <<T as ssmp_pallet::Config>::Block as BlockT>::Hash::decode(&mut &block.hash[..])
             .map_err(|_| ErrorKind::InvalidBlockHash)?;
-        let number = NumberFor::<<T as frame_system::Config>::Block>::try_from(block.number)
+        let number = NumberFor::<<T as ssmp_pallet::Config>::Block>::try_from(block.number)
             .map_err(|_| ErrorKind::InvalidBlockNumber)?;
 
-        let notification = FinalityNotification {
+        let notification = FinalityNotification::<<T as ssmp_pallet::Config>::Block> {
             hash,
             number,
             justification: None,
@@ -311,18 +328,18 @@ where
 }
 
 /// Background worker that subscribes to GRANDPA notifications
-pub struct FrostWorker<T: Config + Send + Sync + 'static> 
+pub struct SSMPWorker<T: Config + Send + Sync + 'static> 
 where
-    <T as frame_system::Config>::Block: BlockT + HeaderT,
+    <T as ssmp_pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
 {
-    observer: Arc<FrostFinalityObserver<T>>,
+    observer: Arc<SSMPObserver<T>>,
 }
 
-impl<T: Config + Send + Sync + 'static> FrostWorker<T> 
+impl<T: Config + Send + Sync + 'static> SSMPWorker<T> 
 where
-    <T as frame_system::Config>::Block: BlockT + HeaderT,
+    <T as ssmp_pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
 {
-    pub fn new(observer: Arc<FrostFinalityObserver<T>>) -> Self {
+    pub fn new(observer: Arc<SSMPObserver<T>>) -> Self {
         Self { observer }
     }
 
