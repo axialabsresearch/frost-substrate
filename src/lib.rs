@@ -4,11 +4,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit="1024"]
 
-use std::{sync::Arc, fmt::Debug};
+use sp_std::prelude::*;
 use frame_support::{
     pallet_prelude::*,
     traits::Get,
     Parameter,
+    weights::Weight,
+    Blake2_128Concat,
+    BoundedVec,
+};
+use frame_support::{
+    pallet_prelude::{Member, ConstU32},
 };
 use frame_system::pallet_prelude::*;
 use sp_runtime::{
@@ -16,18 +22,22 @@ use sp_runtime::{
     generic::DigestItem,
     codec::{Encode, Decode, EncodeLike},
 };
-use sp_std::{prelude::*, vec::Vec};
+use sp_std::{vec::Vec, prelude::*};
 use sp_consensus_grandpa::AuthorityList;
 use sp_api::ProvideRuntimeApi;
 use sp_core::H256;
 use sp_blockchain::{HeaderBackend, Backend as BlockBackend};
 use frost_protocol::routing::router::MessageRouter;
 use scale_info::TypeInfo;
+use once_cell::sync::Lazy;
+use std::any::TypeId;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use crate::{
     observer::{SSMPObserver, SSMPWorker, WatchTarget},
-    routing::SubstrateRouter,
     proof::MerkleProofGenerator,
+    routing::RouterAdapter,
 };
 use frost_protocol::routing::RoutingConfig;
 
@@ -38,7 +48,7 @@ pub mod ssmp_pallet {
     pub const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + Send + Sync + 'static {
+    pub trait Config: frame_system::Config {
         /// The overarching event type
         type RuntimeEvent: Parameter 
             + Member 
@@ -60,21 +70,24 @@ pub mod ssmp_pallet {
         type Block: BlockT<Hash = H256> + HeaderT;
 
         /// Client type for runtime API access
-        type Client: HeaderBackend<<Self as ssmp_pallet::Config>::Block>
-            + BlockBackend<<Self as ssmp_pallet::Config>::Block>
+        type Client: HeaderBackend<<Self as Config>::Block>
+            + BlockBackend<<Self as Config>::Block>
             + Send 
             + Sync 
+            + Default
             + 'static;
 
         /// Optional message router type
         /// Set to () to disable routing functionality
-        type MessageRouter: Into<Option<Arc<dyn MessageRouter + Send + Sync + 'static>>> + 'static;
+        type MessageRouter: Into<Option<Arc<RouterAdapter<Self::NetworkProtocol>>>> + Default + 'static;
+
+        /// Network protocol implementation
+        type NetworkProtocol: frost_protocol::NetworkProtocol + Default + 'static;
     }
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::storage_version(STORAGE_VERSION)]
-    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::storage]
@@ -83,7 +96,8 @@ pub mod ssmp_pallet {
         Blake2_128Concat,
         T::FrostHash,
         WatchTarget,
-        OptionQuery
+        OptionQuery,
+        GetDefault
     >;
 
     #[pallet::event]
@@ -119,25 +133,29 @@ pub mod ssmp_pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> 
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
-        <T as Config>::Block: BlockT<Hash = H256> + HeaderT,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Hash: From<H256> + Into<H256>,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + Into<u64> + SaturatedConversion + Saturating + Zero,
+        T: Send + Sync,
+        T::Client: Clone,
+        T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
+        <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+        NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
     {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             // Initialize observer if needed
-            Self::ensure_observer();
+            let _ = Self::ensure_observer();
             Weight::zero()
         }
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> 
+    impl<T: Config> Pallet<T>
     where
-        <T as Config>::Block: BlockT<Hash = H256> + HeaderT,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Hash: From<H256> + Into<H256>,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + Into<u64> + SaturatedConversion + Saturating + Zero,
+        T: Send + Sync,
+        T::Client: Clone,
+        T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
+        <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+        NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
     {
         #[pallet::weight(10_000)]
         pub fn register_watch_target(
@@ -170,34 +188,48 @@ pub mod ssmp_pallet {
         }
     }
 
-    impl<T: Config> Pallet<T> 
+    impl<T> Pallet<T>
     where
-        <T as Config>::Block: BlockT<Hash = H256> + HeaderT,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Hash: From<H256> + Into<H256>,
-        <<<T as Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + Into<u64> + SaturatedConversion + Saturating + Zero,
+        T: Config + Send + Sync,
+        T::Client: Clone,
+        T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
+        <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+        NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
     {
         /// Get or create observer instance
         fn ensure_observer() -> Option<Arc<SSMPObserver<T>>> {
-            static OBSERVER: Lazy<RwLock<Option<Arc<SSMPObserver<T>>>>> = Lazy::new(|| RwLock::new(None));
+            type ObserverMap = HashMap<TypeId, Box<dyn std::any::Any + Send + Sync>>;
+            static OBSERVERS: Lazy<RwLock<ObserverMap>> = Lazy::new(|| RwLock::new(HashMap::new()));
             
-            let mut observer = OBSERVER.write();
-            if observer.is_none() {
-                // Initialize components
-                let client = T::Client::default();
-                let proof_gen = Arc::new(MerkleProofGenerator::new());
-                let router = T::MessageRouter::default();
-
-                // Create observer
-                let new_observer = SSMPObserver::new(
-                    Arc::new(client),
-                    proof_gen,
-                    router,
-                );
-
-                *observer = Some(Arc::new(new_observer));
+            let type_id = TypeId::of::<T>();
+            
+            let mut observers = match OBSERVERS.write() {
+                Ok(guard) => guard,
+                Err(_) => return None,
+            };
+            
+            if let Some(observer) = observers.get(&type_id) {
+                if let Some(observer) = observer.downcast_ref::<Arc<SSMPObserver<T>>>() {
+                    return Some(observer.clone());
+                }
             }
             
-            observer.clone()
+            let client = T::Client::default();
+            
+            let proof_gen = Arc::new(MerkleProofGenerator::new(
+                Arc::new(client.clone())
+            ));
+            
+            let router = T::MessageRouter::default();
+
+            let new_observer = Arc::new(SSMPObserver::new(
+                Arc::new(client),
+                proof_gen,
+                router,
+            ));
+            
+            observers.insert(type_id, Box::new(new_observer.clone()));
+            Some(new_observer)
         }
 
         /// Get observer instance

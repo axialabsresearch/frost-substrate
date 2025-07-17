@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
+#![allow(dead_code)]
 
 use crate::ssmp_pallet;
 use std::{sync::Arc, marker::PhantomData, ops::Deref, fmt::Debug};
@@ -15,14 +16,18 @@ use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero, Sa
 use sp_api::{HeaderT as ApiHeaderT, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, Backend as BlockBackend};
 use sp_consensus_grandpa::{AuthorityList, GrandpaJustification};
-use parity_scale_codec::{Encode, Decode, EncodeLike, WrapperTypeEncode, WrapperTypeDecode};
+use parity_scale_codec::{Encode, Decode, EncodeLike, WrapperTypeEncode, WrapperTypeDecode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use frame_system::EventRecord;
 use log::error;
 use futures::{StreamExt, Stream};
 use finality_grandpa::voter_set::VoterSet;
 use sp_core::H256;
-use frame_support::{Parameter, pallet_prelude::Member};
+use frame_support::{
+    Parameter, 
+    pallet_prelude::{Member, BoundedVec, ConstU32},
+};
+use sp_runtime::RuntimeDebug;
 
 use crate::{
     ssmp_pallet::Config,
@@ -60,16 +65,40 @@ impl From<sp_api::ApiError> for ErrorKind {
 }
 
 /// Target to watch for finality
-#[derive(Clone, Encode, Decode, TypeInfo, Debug, PartialEq, Eq)]
+#[derive(Clone, Encode, Decode, TypeInfo, RuntimeDebug, PartialEq, Eq, MaxEncodedLen)]
 pub struct WatchTarget {
     /// Module to watch
-    pub module_name: Vec<u8>,
+    pub module_name: BoundedVec<u8, ConstU32<32>>,
     /// Function to watch
-    pub function_name: Vec<u8>,
+    pub function_name: BoundedVec<u8, ConstU32<32>>,
     /// Optional message hash to watch for
-    pub message_hash: Option<Vec<u8>>,
+    pub message_hash: Option<BoundedVec<u8, ConstU32<64>>>,
     /// Target chain to route to
-    pub target_chain: Vec<u8>,
+    pub target_chain: BoundedVec<u8, ConstU32<32>>,
+}
+
+impl WatchTarget {
+    pub fn new(
+        module_name: Vec<u8>,
+        function_name: Vec<u8>,
+        message_hash: Option<Vec<u8>>,
+        target_chain: Vec<u8>,
+    ) -> std::result::Result<Self, &'static str> {
+        Ok(Self {
+            module_name: BoundedVec::try_from(module_name)
+                .map_err(|_| "Module name too long")?,
+            function_name: BoundedVec::try_from(function_name)
+                .map_err(|_| "Function name too long")?,
+            message_hash: if let Some(hash) = message_hash {
+                Some(BoundedVec::try_from(hash)
+                    .map_err(|_| "Message hash too long")?)
+            } else {
+                None
+            },
+            target_chain: BoundedVec::try_from(target_chain)
+                .map_err(|_| "Target chain too long")?,
+        })
+    }
 }
 
 /// Finality notification from GRANDPA
@@ -102,7 +131,7 @@ where
     /// Proof generator
     proof_generator: Arc<dyn ProofGenerator>,
     /// Optional message router
-    message_router: Option<Arc<dyn MessageRouter + Send + Sync>>,
+    message_router: Option<Arc<dyn frost_protocol::routing::router::MessageRouter + Send + Sync>>,
     /// Client reference
     client: Arc<T::Client>,
     /// Finality checker
@@ -143,7 +172,10 @@ where
         Self {
             watch_targets: RwLock::new(Vec::new()),
             proof_generator,
-            message_router: message_router.into(),
+            message_router: message_router.into().map(|router| {
+                let router: Arc<dyn frost_protocol::routing::router::MessageRouter + Send + Sync> = router;
+                router
+            }),
             client,
             finality,
             _phantom: PhantomData,
