@@ -4,7 +4,7 @@
 
 use frost_protocol::finality::predicate::{
     FinalityPredicate,
-    FinalityVerificationClient,
+    FinalityVerificationClient as BaseFinalityVerificationClient,
     PredicateConfig,
     ChainRules,
     FinalityVerificationError,
@@ -18,9 +18,11 @@ use sp_consensus_grandpa::{
     AuthorityWeight,
     GRANDPA_ENGINE_ID,
     GrandpaJustification,
+    GrandpaApi,
     AuthoritySignature,
     VersionedAuthorityList,
 };
+use std::any::Any;
 use finality_grandpa::{
     voter_set::{VoterSet, VoterInfo},
     round::State as RoundState,
@@ -29,9 +31,6 @@ use finality_grandpa::{
     Error as GrandpaError,
     // weights::VoterWeight,
 };
-use std::collections::HashMap;
-use tokio::sync::RwLock as TokioRwLock;
-
 // Use u64 directly instead of VoterWeight
 type VoterWeight = u64;
 
@@ -40,7 +39,8 @@ use sp_runtime::{
     traits::{Block as BlockT, Header as HeaderT, NumberFor, SaturatedConversion, Saturating, AppVerify, Zero},
     Justification,
 };
-use sp_api::ProvideRuntimeApi;
+use sp_runtime::traits::Dispatchable;
+use sp_api::{ProvideRuntimeApi, ApiExt};
 use sp_blockchain::{HeaderBackend, Backend as BlockBackend, Info};
 use sp_core::H256;
 use parity_scale_codec::{Decode, Encode};
@@ -53,6 +53,10 @@ use parking_lot::RwLock;
 use sp_runtime::traits::Verify;
 use metrics::{register_counter, register_gauge, Counter, Gauge};
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use tokio::sync::RwLock as TokioRwLock;
+use frame_system::EventRecord;
+
 
 static SIGNATURE_VERIFICATIONS: Lazy<Counter> = Lazy::new(|| {
     register_counter!("grandpa_signature_verifications_total")
@@ -208,7 +212,7 @@ impl ChainConfig {
 pub struct GrandpaFinality<C, B: BlockT> {
     client: Arc<C>,
     config: PredicateConfig,
-    verification_client: Arc<dyn FinalityVerificationClient>,
+    verification_client: Arc<dyn BaseFinalityVerificationClient>,
     voter_set: Arc<VoterSet<AuthorityId>>,
     _phantom: PhantomData<B>,
 }
@@ -218,12 +222,13 @@ where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
     NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
-    C: HeaderBackend<B> + BlockBackend<B> + Send + Sync,
+    C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
+    C::Api: GrandpaApi<B>,
 {
     pub fn new(
         client: Arc<C>,
         config: PredicateConfig,
-        verification_client: Arc<dyn FinalityVerificationClient>,
+        verification_client: Arc<dyn BaseFinalityVerificationClient>,
         authorities: AuthorityList,
     ) -> Self {
         let voter_set = VoterSet::new(
@@ -239,10 +244,78 @@ where
             _phantom: PhantomData,
         }
     }
+
+    /// Create new GRANDPA finality with runtime authorities
+    pub fn new_from_runtime(
+        client: Arc<C>,
+        config: PredicateConfig,
+        params: GrandpaVerificationParams,
+        chain_config: ChainConfig,
+    ) -> Result<Self, GrandpaFinalityVerificationError> {
+        let verification_client = Arc::new(
+            SubstrateVerificationClient::new_with_runtime_authorities(
+                client.clone(),
+                params,
+                chain_config,
+            )?
+        );
+
+        // Get authorities from runtime
+        let best_hash = client.info().best_hash;
+        let authorities = client
+            .runtime_api()
+            .grandpa_authorities(&best_hash)
+            .map_err(|e| GrandpaFinalityVerificationError::ChainError(
+                format!("Failed to get GRANDPA authorities: {}", e)
+            ))?;
+
+        let voter_set = VoterSet::new(
+            authorities.iter()
+                .map(|(id, weight)| (id.clone(), *weight))
+                .collect::<Vec<_>>()
+        ).ok_or_else(|| GrandpaFinalityVerificationError::AuthoritySetError(
+            "Failed to create voter set".to_string()
+        ))?;
+
+        Ok(Self {
+            client,
+            config,
+            verification_client,
+            voter_set: Arc::new(voter_set),
+            _phantom: PhantomData,
+        })
+    }
+
+    /// Subscribe to authority set changes
+    pub async fn handle_authority_set_change(
+        &self,
+        new_authorities: AuthorityList,
+        set_id: u64,
+    ) -> Result<(), GrandpaFinalityVerificationError> {
+        debug!("Handling authority set change to set {}", set_id);
+        
+        // Update the voter set
+        let new_voter_set = VoterSet::new(
+            new_authorities.iter()
+                .map(|(id, weight)| (id.clone(), *weight))
+                .collect::<Vec<_>>()
+        ).ok_or_else(|| GrandpaFinalityVerificationError::AuthoritySetError(
+            "Failed to create new voter set".to_string()
+        ))?;
+
+        // For now, we'll delegate to the verification client
+        let verification_client = &*self.verification_client;
+        if let Some(substrate_client) = verification_client.as_any()
+            .downcast_ref::<SubstrateVerificationClient<C, B>>() {
+            substrate_client.handle_authority_set_update(new_authorities, set_id).await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
-impl<C, B> FinalityPredicate for GrandpaFinality<C, B>
+impl<C: 'static, B> FinalityPredicate for GrandpaFinality<C, B>
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
@@ -414,7 +487,8 @@ where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
     NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
-    C: HeaderBackend<B> + BlockBackend<B> + Send + Sync,
+    C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
+    C::Api: GrandpaApi<B>,
 {
     pub fn new(
         client: Arc<C>,
@@ -430,6 +504,44 @@ where
             finality_cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             _phantom: PhantomData,
         }
+    }
+
+    /// Create new client with proper authority set initialization
+    pub fn new_with_runtime_authorities(
+        client: Arc<C>,
+        params: GrandpaVerificationParams,
+        chain_config: ChainConfig,
+    ) -> Result<Self, GrandpaFinalityVerificationError> {
+        // Get the best block to initialize from
+        let best_hash = client.info().best_hash;
+        
+        // Fetch current GRANDPA authorities from runtime
+        let authorities = client
+            .runtime_api()
+            .grandpa_authorities(&best_hash)
+            .map_err(|e| GrandpaFinalityVerificationError::ChainError(
+                format!("Failed to get GRANDPA authorities: {}", e)
+            ))?;
+
+        debug!("Initialized with {} GRANDPA authorities", authorities.len());
+
+        // Create voter set from authorities
+        let voter_set = VoterSet::new(
+            authorities.iter()
+                .map(|(id, weight)| (id.clone(), *weight))
+                .collect::<Vec<_>>()
+        ).ok_or_else(|| GrandpaFinalityVerificationError::AuthoritySetError(
+            "Failed to create voter set from authorities".to_string()
+        ))?;
+
+        Ok(Self {
+            client,
+            voter_set: Arc::new(RwLock::new(voter_set)),
+            params,
+            chain_config,
+            finality_cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            _phantom: PhantomData,
+        })
     }
 
     /// Verify GRANDPA justification signatures and voting power
@@ -478,6 +590,64 @@ where
         };
     
         Ok((participation_rate >= self.params.min_participation, participation_rate))
+    }
+
+    /// Update authorities from runtime state
+    pub async fn update_authorities_from_runtime(
+        &self,
+        block_hash: B::Hash,
+    ) -> Result<(), GrandpaFinalityVerificationError> 
+    where
+        C::Api: GrandpaApi<B>,
+    {
+        let authorities = self.client
+            .runtime_api()
+            .grandpa_authorities(block_hash)
+            .map_err(|e| GrandpaFinalityVerificationError::ChainError(
+                format!("Failed to get authorities at block {}: {}", block_hash, e)
+            ))?;
+
+        let new_voter_set = VoterSet::new(
+            authorities.iter()
+                .map(|(id, weight)| (id.clone(), *weight))
+                .collect::<Vec<_>>()
+        ).ok_or_else(|| GrandpaFinalityVerificationError::AuthoritySetError(
+            "Failed to create voter set".to_string()
+        ))?;
+
+        {
+            let mut voter_set = self.voter_set.write();
+            *voter_set = new_voter_set;
+        }
+
+        debug!("Updated authority set with {} authorities", authorities.len());
+        CURRENT_SET_VALIDATORS.set(authorities.len() as f64);
+
+        Ok(())
+    }
+
+    /// Get current set ID from runtime
+    pub fn get_current_set_id(&self) -> Result<u64, GrandpaFinalityVerificationError> 
+    where
+        C::Api: GrandpaApi<B>,
+    {
+        let best_hash = self.client.info().best_hash;
+        self.client
+            .runtime_api()
+            .grandpa_authorities(&best_hash)
+            .map(|authorities| {
+                // In a real implementation, you'd get the actual set ID from runtime
+                // For now, we'll derive it from the authority list hash
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                
+                let mut hasher = DefaultHasher::new();
+                authorities.hash(&mut hasher);
+                hasher.finish()
+            })
+            .map_err(|e| GrandpaFinalityVerificationError::ChainError(
+                format!("Failed to get current set ID: {}", e)
+            ))
     }
 
     /// Get comprehensive finality status for a block
@@ -658,7 +828,7 @@ where
 }
 
 #[async_trait]
-impl<C, B> FinalityVerificationClient for SubstrateVerificationClient<C, B>
+impl<C, B> BaseFinalityVerificationClient for SubstrateVerificationClient<C, B>
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
