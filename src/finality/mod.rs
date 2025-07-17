@@ -264,7 +264,7 @@ where
         let best_hash = client.info().best_hash;
         let authorities = client
             .runtime_api()
-            .grandpa_authorities(&best_hash)
+            .grandpa_authorities(best_hash)
             .map_err(|e| GrandpaFinalityVerificationError::ChainError(
                 format!("Failed to get GRANDPA authorities: {}", e)
             ))?;
@@ -481,12 +481,11 @@ impl AsRef<FrostBlockRef> for SubstrateBlockRef {
     }
 }
 
-// Update trait bounds to resolve Hash ambiguity
 impl<C, B> SubstrateVerificationClient<C, B>
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
-    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy + From<f64>,
     C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
     C::Api: GrandpaApi<B>,
 {
@@ -518,7 +517,7 @@ where
         // Fetch current GRANDPA authorities from runtime
         let authorities = client
             .runtime_api()
-            .grandpa_authorities(&best_hash)
+            .grandpa_authorities(best_hash)
             .map_err(|e| GrandpaFinalityVerificationError::ChainError(
                 format!("Failed to get GRANDPA authorities: {}", e)
             ))?;
@@ -634,7 +633,7 @@ where
         let best_hash = self.client.info().best_hash;
         self.client
             .runtime_api()
-            .grandpa_authorities(&best_hash)
+            .grandpa_authorities(best_hash)
             .map(|authorities| {
                 // In a real implementation, you'd get the actual set ID from runtime
                 // For now, we'll derive it from the authority list hash
@@ -828,12 +827,13 @@ where
 }
 
 #[async_trait]
-impl<C, B> BaseFinalityVerificationClient for SubstrateVerificationClient<C, B>
+impl<C: 'static, B> BaseFinalityVerificationClient for SubstrateVerificationClient<C, B>
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
-    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
-    C: HeaderBackend<B> + BlockBackend<B> + Send + Sync,
+    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy + From<f64>,
+    C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
+    C::Api: GrandpaApi<B>,
 {
     async fn get_chain_head(&self) -> Result<FrostBlockRef, FinalityVerificationError> {
         let info = self.client.info();

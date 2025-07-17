@@ -13,7 +13,7 @@ use frost_protocol::{
 use sp_runtime::traits::{Hash, Member, Block as BlockT};
 use sp_consensus_grandpa::AuthorityList as AuthoritySet;
 use sp_api::ProvideRuntimeApi;
-use codec::{Encode, Decode};
+use parity_scale_codec::{Encode, Decode};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
 
