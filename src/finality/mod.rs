@@ -29,6 +29,8 @@ use finality_grandpa::{
     Error as GrandpaError,
     // weights::VoterWeight,
 };
+use std::collections::HashMap;
+use tokio::sync::RwLock as TokioRwLock;
 
 // Use u64 directly instead of VoterWeight
 type VoterWeight = u64;
@@ -339,6 +341,8 @@ pub struct GrandpaVerificationParams {
     pub timeout: Duration,
     /// GRANDPA voter set ID
     pub set_id: u64,
+    /// Strict signature verification
+    pub strict_signature_verification: bool,
 }
 
 impl Default for GrandpaVerificationParams {
@@ -349,8 +353,21 @@ impl Default for GrandpaVerificationParams {
             max_fork_depth: 50,
             timeout: Duration::from_secs(30),
             set_id: 0,
+            strict_signature_verification: true,
         }
     }
+}
+
+/// Voting round information
+#[derive(Debug, Clone)]
+pub struct VotingRoundInfo {
+    pub round: u64,
+    pub set_id: u64,
+    pub target_hash: H256,
+    pub target_number: u64,
+    pub precommit_count: u32,
+    pub total_weight: u64,
+    pub valid_weight: u64,
 }
 
 /// Block finality status
@@ -369,6 +386,7 @@ pub struct SubstrateVerificationClient<C, B: BlockT> {
     voter_set: Arc<RwLock<VoterSet<AuthorityId>>>,
     params: GrandpaVerificationParams,
     chain_config: ChainConfig,
+    finality_cache: Arc<tokio::sync::RwLock<HashMap<H256, (FinalityStatus<NumberFor<B>>, Instant)>>>,
     _phantom: PhantomData<B>,
 }
 
@@ -409,6 +427,7 @@ where
             voter_set: Arc::new(RwLock::new(voter_set)),
             params,
             chain_config,
+            finality_cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             _phantom: PhantomData,
         }
     }
@@ -575,6 +594,36 @@ where
         );
 
         Ok(())
+    }
+
+    /// Get finality status with caching
+    async fn get_finality_status_cached(
+        &self,
+        block_hash: H256,
+    ) -> Result<FinalityStatus<NumberFor<B>>, GrandpaFinalityVerificationError> {
+        // Check cache first
+        {
+            let cache = self.finality_cache.read().await;
+            if let Some((status, timestamp)) = cache.get(&block_hash) {
+                if timestamp.elapsed() < Duration::from_secs(5) {
+                    return Ok(status.clone());
+                }
+            }
+        }
+
+        // Get fresh status
+        let status = self.get_finality_status(block_hash).await?;
+        
+        // Update cache
+        {
+            let mut cache = self.finality_cache.write().await;
+            cache.insert(block_hash, (status.clone(), Instant::now()));
+            
+            // Clean old entries
+            cache.retain(|_, (_, timestamp)| timestamp.elapsed() < Duration::from_secs(30));
+        }
+
+        Ok(status)
     }
 
     // Update get_chain_head to return SubstrateBlockRef for internal use
