@@ -33,6 +33,7 @@ use once_cell::sync::Lazy;
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use crate::runtime_api::SSMPApi;
 
 use crate::{
     observer::{SSMPObserver, SSMPWorker, WatchTarget},
@@ -40,6 +41,7 @@ use crate::{
     routing::RouterAdapter,
 };
 use frost_protocol::routing::RoutingConfig;
+// for use crate::runtime_api::SSMPApi;
 
 mod wrapper_types;
 pub use wrapper_types::{SSMPStateTransition, SubstrateStateProof, SubstrateFrostMessage};
@@ -75,10 +77,17 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type
-        type RuntimeEvent: Parameter 
-            + Member 
-            + From<Event<Self>> 
-            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        type RuntimeEvent: Parameter
+            + Member
+            + From<Event<Self>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>
+            + Encode
+            + Decode
+            + TypeInfo
+            + EncodeLike;
+
+        /// Type for block hash
+        type Hash: sp_api::HashT;
 
         /// Type for block hash
         type FrostHash: Hash + Member + Parameter + MaxEncodedLen + TypeInfo + From<<Self::FrostHash as Hash>::Output> + Clone + Copy;
@@ -90,10 +99,16 @@ pub mod pallet {
         type Client: HeaderBackend<<Self as pallet::Config>::Block>
             + BlockBackend<<Self as pallet::Config>::Block>
             + ProvideRuntimeApi<<Self as pallet::Config>::Block>
-            + Send 
-            + Sync 
+            + Send
+            + Sync
             + Default
-            + 'static;
+            + Clone
+            + 'static
+        where
+            <Self::Client as ProvideRuntimeApi<<Self as pallet::Config>::Block>>::Api:
+                SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+                + sp_api::Core<<Self as pallet::Config>::Block>
+                + sp_consensus_grandpa::GrandpaApi<<Self as pallet::Config>::Block>;
 
         /// Optional message router type
         type MessageRouter: Into<Option<Arc<RouterAdapter<Self::NetworkProtocol>>>> + Default + 'static;
@@ -101,6 +116,7 @@ pub mod pallet {
         /// Network protocol implementation
         type NetworkProtocol: frost_protocol::NetworkProtocol + Default + 'static;
     }
+
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -130,14 +146,11 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
-        T: Send + Sync,
-        T::Client: Clone,
-        T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
-        <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+        <T as frame_system::Config>::Hash: sp_api::HashT,
         NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
     {
+        // Initialize observer if needed
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-            // Initialize observer if needed
             let _ = Self::ensure_observer();
             Weight::zero()
         }
@@ -146,10 +159,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T>
     where
-        T: Send + Sync,
-        T::Client: Clone,
-        T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
-        <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+        <T as frame_system::Config>::Hash: sp_api::HashT,
         NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
     {
         #[pallet::weight(10_000)]
@@ -190,12 +200,25 @@ pub mod pallet {
         T::MessageRouter: Into<Option<Arc<RouterAdapter<T::NetworkProtocol>>>>,
         <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
         NumberFor<<T as Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
+        <T::Client as ProvideRuntimeApi<<T as Config>::Block>>::Api:
+            SSMPApi<<T as Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+            + sp_api::Core<<T as Config>::Block>
+            + sp_consensus_grandpa::GrandpaApi<<T as Config>::Block>,
+            std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, 
+            <T as pallet::Config>::Hash>>: parity_scale_codec::Decode,
     {
         /// Get or create observer instance
         fn ensure_observer() -> Option<Arc<SSMPObserver<T>>> 
         where
-            T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
-            <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_api::Core<<T as pallet::Config>::Block>,
+            // Add the required API bound here
+            <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:
+                SSMPApi<
+                    <T as pallet::Config>::Block, 
+                    <T as pallet::Config>::RuntimeEvent, 
+                    <T as frame_system::Config>::Hash> 
+                        + sp_api::Core<<T as pallet::Config>::Block>
+                        + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, 
+                    <T as frame_system::Config>::Hash: sp_api::HashT,
         {
             static OBSERVERS: Lazy<RwLock<HashMap<TypeId, Box<dyn std::any::Any + Send + Sync>>>> = 
                 Lazy::new(|| RwLock::new(HashMap::new()));
@@ -210,7 +233,11 @@ pub mod pallet {
             }
             
             let client = T::Client::default();
-            let proof_gen = Arc::new(MerkleProofGenerator::new(Arc::new(client.clone())));
+            let proof_gen = Arc::new(
+                MerkleProofGenerator::<<T as pallet::Config>::Client, <T as pallet::Config>::Block>::new(
+                    Arc::new(client.clone())
+                )
+            );
             let router = T::MessageRouter::default();
 
             let new_observer = Arc::new(SSMPObserver::new(
@@ -224,11 +251,22 @@ pub mod pallet {
         }
 
         /// Get observer instance
-        fn observer() -> Option<Arc<SSMPObserver<T>>> {
+        fn observer() -> Option<Arc<SSMPObserver<T>>>
+        where
+            <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:
+                SSMPApi<
+                    <T as pallet::Config>::Block, 
+                    <T as pallet::Config>::RuntimeEvent, 
+                    <T as frame_system::Config>::Hash> + sp_api::Core<<T as pallet::Config>::Block>,
+                    <T as frame_system::Config>::Hash: sp_api::HashT,
+        {
+            // This function calls ensure_observer, so its bounds are implicitly handled by ensure_observer's bounds.
+            // No explicit bounds needed here unless it has direct uses of T::Client that require specific API traits.
             Self::ensure_observer()
         }
     }
 } 
+
 #[cfg(test)]
 mod mock;
 
@@ -239,5 +277,4 @@ pub mod routing;
 pub mod observer;
 pub mod proof;
 pub mod finality;
-
-
+pub mod runtime_api;

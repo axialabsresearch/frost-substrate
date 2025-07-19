@@ -1,0 +1,1477 @@
+warning: unexpected `cfg` condition value: `never`
+  --> substrate/primitives/runtime-interface/src/lib.rs:20:13
+   |
+20 | #![cfg_attr(feature = "never", rustfmt::skip)]
+   |             ^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `disable_target_static_assertions`, and `std`
+   = help: consider adding `never` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `sp-runtime-interface` (lib) generated 1 warning
+warning: use of deprecated type alias `std::panic::PanicInfo`: use `PanicHookInfo` instead
+  --> substrate/primitives/panic-handler/src/lib.rs:33:16
+   |
+33 |     panic::{self, PanicInfo},
+   |                   ^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `std::panic::PanicInfo`: use `PanicHookInfo` instead
+   --> substrate/primitives/panic-handler/src/lib.rs:148:22
+    |
+148 | fn panic_hook(info: &PanicInfo, report_url: &str, version: &str) {
+    |                      ^^^^^^^^^
+
+warning: `sp-panic-handler` (lib) generated 2 warnings
+warning: unused imports: `Error` and `ExecutionError`
+   --> substrate/primitives/state-machine/src/lib.rs:145:11
+    |
+145 |         error::{Error, ExecutionError},
+    |                 ^^^^^  ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+
+warning: `sp-state-machine` (lib) generated 1 warning (run `cargo fix --lib -p sp-state-machine` to apply 1 suggestion)
+warning: unexpected `cfg` condition name: `enable_alloc_error_handler`
+  --> substrate/primitives/io/src/lib.rs:22:13
+   |
+22 | #![cfg_attr(enable_alloc_error_handler, feature(alloc_error_handler))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_alloc_error_handler)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_alloc_error_handler)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `enable_alloc_error_handler`
+    --> substrate/primitives/io/src/lib.rs:1678:41
+     |
+1678 | #[cfg(all(not(feature = "disable_oom"), enable_alloc_error_handler))]
+     |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(enable_alloc_error_handler)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(enable_alloc_error_handler)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `sp-io` (lib) generated 2 warnings
+warning: unexpected `cfg` condition value: `runtime-benchmarks`
+   --> substrate/primitives/weights/src/weight_v2.rs:406:34
+    |
+406 | #[cfg(any(test, feature = "std", feature = "runtime-benchmarks"))]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `full-metadata-docs`, `serde`, and `std`
+    = help: consider adding `runtime-benchmarks` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `runtime-benchmarks`
+   --> substrate/primitives/weights/src/weight_v2.rs:413:34
+    |
+413 | #[cfg(any(test, feature = "std", feature = "runtime-benchmarks"))]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `full-metadata-docs`, `serde`, and `std`
+    = help: consider adding `runtime-benchmarks` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `sp-weights` (lib) generated 2 warnings
+warning: unexpected `cfg` condition value: `try-runtime`
+   --> substrate/frame/support/procedural/src/lib.rs:662:31
+    |
+662 |     if cfg!(any(feature = "std", feature = "try-runtime")) {
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `no-metadata-docs`, `std`, `tuples-128`, and `tuples-96`
+    = help: consider adding `try-runtime` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: fields `name` and `where_section` are never read
+  --> substrate/frame/support/procedural/src/construct_runtime/parse.rs:67:6
+   |
+66 | pub struct ImplicitRuntimeDeclaration {
+   |            -------------------------- fields in this struct
+67 |     pub name: Ident,
+   |         ^^^^
+68 |     pub where_section: Option<WhereSection>,
+   |         ^^^^^^^^^^^^^
+   |
+   = note: `ImplicitRuntimeDeclaration` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: fields `block`, `node_block`, and `unchecked_extrinsic` are never read
+   --> substrate/frame/support/procedural/src/construct_runtime/parse.rs:126:6
+    |
+124 | pub struct WhereSection {
+    |            ------------ fields in this struct
+125 |     pub span: Span,
+126 |     pub block: syn::TypePath,
+    |         ^^^^^
+127 |     pub node_block: syn::TypePath,
+    |         ^^^^^^^^^^
+128 |     pub unchecked_extrinsic: syn::TypePath,
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `WhereSection` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `span` is never read
+   --> substrate/frame/support/procedural/src/pallet/parse/mod.rs:570:6
+    |
+568 | pub struct InheritedCallWeightAttr {
+    |            ----------------------- field in this struct
+569 |     pub typename: syn::Type,
+570 |     pub span: proc_macro2::Span,
+    |         ^^^^
+    |
+    = note: `InheritedCallWeightAttr` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: fields `index` and `attr_span` are never read
+  --> substrate/frame/support/procedural/src/pallet/parse/composite.rs:83:6
+   |
+81 | pub struct CompositeDef {
+   |            ------------ fields in this struct
+82 |     /// The index of the HoldReason item in the pallet module.
+83 |     pub index: usize,
+   |         ^^^^^
+...
+87 |     pub attr_span: proc_macro2::Span,
+   |         ^^^^^^^^^
+
+warning: field `attr_span` is never read
+  --> substrate/frame/support/procedural/src/pallet/parse/config.rs:56:6
+   |
+41 | pub struct ConfigDef {
+   |            --------- field in this struct
+...
+56 |     pub attr_span: proc_macro2::Span,
+   |         ^^^^^^^^^
+
+warning: field `index` is never read
+  --> substrate/frame/support/procedural/src/pallet/parse/extra_constants.rs:41:6
+   |
+35 | pub struct ExtraConstantsDef {
+   |            ----------------- field in this struct
+...
+41 |     pub index: usize,
+   |         ^^^^^
+
+warning: field `index` is never read
+  --> substrate/frame/support/procedural/src/pallet/parse/genesis_build.rs:24:6
+   |
+22 | pub struct GenesisBuildDef {
+   |            --------------- field in this struct
+23 |     /// The index of item in pallet module.
+24 |     pub index: usize,
+   |         ^^^^^
+
+warning: field `index` is never read
+  --> substrate/frame/support/procedural/src/pallet/parse/hooks.rs:24:6
+   |
+22 | pub struct HooksDef {
+   |            -------- field in this struct
+23 |     /// The index of item in pallet.
+24 |     pub index: usize,
+   |         ^^^^^
+
+warning: field `index` is never read
+  --> substrate/frame/support/procedural/src/pallet/parse/inherent.rs:24:6
+   |
+22 | pub struct InherentDef {
+   |            ----------- field in this struct
+23 |     /// The index of inherent item in pallet module.
+24 |     pub index: usize,
+   |         ^^^^^
+
+warning: fields `index` and `has_instance` are never read
+  --> substrate/frame/support/procedural/src/pallet/parse/origin.rs:29:6
+   |
+27 | pub struct OriginDef {
+   |            --------- fields in this struct
+28 |     /// The index of item in pallet module.
+29 |     pub index: usize,
+   |         ^^^^^
+30 |     pub has_instance: bool,
+   |         ^^^^^^^^^^^^
+
+warning: fields `block` and `instances` are never read
+  --> substrate/frame/support/procedural/src/pallet/parse/type_value.rs:32:6
+   |
+22 | pub struct TypeValueDef {
+   |            ------------ fields in this struct
+...
+32 |     pub block: Box<syn::Block>,
+   |         ^^^^^
+...
+36 |     pub instances: Vec<helper::InstanceUsage>,
+   |         ^^^^^^^^^
+
+warning: fields `index` and `instances` are never read
+  --> substrate/frame/support/procedural/src/pallet/parse/validate_unsigned.rs:24:6
+   |
+22 | pub struct ValidateUnsignedDef {
+   |            ------------------- fields in this struct
+23 |     /// The index of validate unsigned item in pallet module.
+24 |     pub index: usize,
+   |         ^^^^^
+25 |     /// A set of usage of instance, must...
+26 |     pub instances: Vec<helper::InstanceUsage>,
+   |         ^^^^^^^^^
+
+warning: `frame-support-procedural` (lib) generated 13 warnings
+warning: unexpected `cfg` condition name: `no_std`
+   --> substrate/frame/support/src/lib.rs:823:11
+    |
+823 | #[cfg(not(no_std))]
+    |           ^^^^^^
+    |
+    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(no_std)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(no_std)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: associated functions `handle_message`, `handle_messages`, `sweep_queue`, and `footprint` are never used
+   --> substrate/frame/support/src/traits/messages.rs:193:5
+    |
+188 | pub trait HandleMessage {
+    |           ------------- associated functions in this trait
+...
+193 |     fn handle_message(message: BoundedSlice<u8, Self::MaxMessageLen>);
+    |        ^^^^^^^^^^^^^^
+...
+196 |     fn handle_messages<'a>(
+    |        ^^^^^^^^^^^^^^^
+...
+201 |     fn sweep_queue();
+    |        ^^^^^^^^^^^
+...
+204 |     fn footprint() -> Footprint;
+    |        ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: `frame-support` (lib) generated 2 warnings
+   Compiling ssmp-pallet v0.1.0 (/home/tnxl/frostgate/ssmp_pallet)
+warning: unexpected `cfg` condition value: `try-runtime`
+   --> ssmp_pallet/src/lib.rs:146:15
+    |
+146 |     #[pallet::hooks]
+    |               ^^^^^
+    |
+    = note: expected values for `feature` are: `default` and `std`
+    = help: consider adding `try-runtime` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `routing`
+  --> ssmp_pallet/src/lib.rs:70:15
+   |
+70 |         #[cfg(feature = "routing")]
+   |               ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default` and `std`
+   = help: consider adding `routing` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: use of deprecated constant `pallet::warnings::ImplicitCallIndex_0::_w`: 
+                 It is deprecated to use implicit call indices.
+                 Please instead ensure that all calls have a `pallet::call_index` attribute or put the pallet into `dev` mode.
+         
+                 For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891>
+                     <https://github.com/paritytech/substrate/pull/11381>
+   --> ssmp_pallet/src/lib.rs:166:16
+    |
+166 |         pub fn register_watch_target(
+    |                ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated constant `pallet::warnings::ConstantWeight_0::_w`: 
+                 It is deprecated to use hard-coded constant as call weight.
+                 Please instead benchmark all calls or put the pallet into `dev` mode.
+         
+                 For more info see:
+                     <https://github.com/paritytech/substrate/pull/13798>
+   --> ssmp_pallet/src/lib.rs:165:26
+    |
+165 |         #[pallet::weight(10_000)]
+    |                          ^^^^^^
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:147:17
+    |
+147 |     client: Arc<T::Client>,
+    |                 ^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider extending the `where` clause, but there might be an alternative better way to express this requirement
+    |
+138 |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `Vec<EventRecord<<T as Config>::RuntimeEvent, ...>>: Decode` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:172:9
+    |
+172 |         SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `parity_scale_codec::Decode` is not implemented for `Vec<EventRecord<<T as Config>::RuntimeEvent, <T as Config>::Hash>>`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:18:59
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+18  |         Vec<EventRecord<PalletRuntimeEvent, SystemHash>>: Decode,
+    |                                                           ^^^^^^ required by this bound in `SSMPApi`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-8557968473376312300.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider extending the `where` clause, but there might be an alternative better way to express this requirement
+    |
+174 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>>: parity_scale_codec::Decode
+    |                                                                           ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:164:56
+    |
+164 | impl<T: Config + SystemConfig + Send + Sync + 'static> SSMPObserver<T> 
+    |                                                        ^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+174 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:476:30
+    |
+476 |     T::Client: Send + Sync + 'static, 
+    |                              ^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+482 |         >, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: GrandpaApi<...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:476:30
+    |
+476 |     T::Client: Send + Sync + 'static, 
+    |                              ^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:111:19
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+111 |                 + sp_consensus_grandpa::GrandpaApi<<Self as pallet::Config>::Block>;
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+482 |         >, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>
+    |            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:478:9
+    |
+478 | /         crate::runtime_api::SSMPApi<
+479 | |             <T as pallet::Config>::Block,
+480 | |             <T as pallet::Config>::RuntimeEvent,
+481 | |             <T as frame_system::Config>::Hash
+482 | |         >,
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider further restricting the associated type
+    |
+482 |         >, <T as frame_system::Config>::Hash: sp_api::HashT
+    |            ++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:505:9
+    |
+505 | /         crate::runtime_api::SSMPApi<
+506 | |             <T as pallet::Config>::Block,
+507 | |             <T as pallet::Config>::RuntimeEvent,
+508 | |             <T as frame_system::Config>::Hash
+509 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider extending the `where` clause, but there might be an alternative better way to express this requirement
+    |
+510 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <T as frame_system::Config>::Hash: sp_api::HashT
+    |                                                                           ++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:505:9
+    |
+505 | /         crate::runtime_api::SSMPApi<
+506 | |             <T as pallet::Config>::Block,
+507 | |             <T as pallet::Config>::RuntimeEvent,
+508 | |             <T as frame_system::Config>::Hash
+509 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider extending the `where` clause, but there might be an alternative better way to express this requirement
+    |
+510 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |                                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider further restricting the associated type
+    |
+525 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <T as frame_system::Config>::Hash: sp_api::HashT
+    |                                                                           ++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+525 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |                                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:181:10
+    |
+181 |     ) -> Self {
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+181 |     ) -> Self where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |               +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:219:17
+    |
+219 |     ) -> Result<Self> 
+    |                 ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+223 |         <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:254:10
+    |
+254 |         &self,
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+259 |         <T as frame_system::Config>::Hash: sp_api::HashT, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:278:35
+    |
+278 |     pub fn register_watch_target(&self, target: WatchTarget) {
+    |                                   ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+278 |     pub fn register_watch_target(&self, target: WatchTarget) where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                                                              +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:285:10
+    |
+285 |         &self,
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+288 |     ) -> Result<SSMPStateTransition> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                                      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:315:10
+    |
+315 |         &self,
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+317 |     ) -> Result<()> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                     +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:394:10
+    |
+394 |         &self,
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+397 |     ) -> Result<bool> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:433:10
+    |
+433 |         &self,
+    |          ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+436 |     ) -> Result<bool> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:476:30
+    |
+476 |     T::Client: Send + Sync + 'static, 
+    |                              ^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: GrandpaApi<...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:476:30
+    |
+476 |     T::Client: Send + Sync + 'static, 
+    |                              ^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:111:19
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+111 |                 + sp_consensus_grandpa::GrandpaApi<<Self as pallet::Config>::Block>;
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:478:9
+    |
+478 | /         crate::runtime_api::SSMPApi<
+479 | |             <T as pallet::Config>::Block,
+480 | |             <T as pallet::Config>::RuntimeEvent,
+481 | |             <T as frame_system::Config>::Hash
+482 | |         >,
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider further restricting the associated type
+    |
+527 |     pub fn new(observer: Arc<SSMPObserver<T>>) -> Self where <T as frame_system::Config>::Hash: sp_api::HashT {
+    |                                                        ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+527 |     pub fn new(observer: Arc<SSMPObserver<T>>) -> Self where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash> {
+    |                                                        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider further restricting the associated type
+    |
+531 |     pub async fn run(&self) where <T as frame_system::Config>::Hash: sp_api::HashT {
+    |                             ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+531 |     pub async fn run(&self) where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash> {
+    |                             +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `runtime_api::SSMPApi`
+   --> ssmp_pallet/src/runtime_api.rs:17:21
+    |
+10  |     pub trait SSMPApi<PalletRuntimeEvent, SystemHash> 
+    |               ------- required by a bound in this trait
+...
+17  |         SystemHash: HashT,
+    |                     ^^^^^ required by this bound in `SSMPApi`
+help: consider further restricting the associated type
+    |
+543 |         S: Stream<Item = FinalityNotification<<T as pallet::Config>::Block>> + Unpin, <T as frame_system::Config>::Hash: sp_api::HashT
+    |                                                                                       ++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:520:9
+    |
+520 | /         crate::runtime_api::SSMPApi<
+521 | |             <T as pallet::Config>::Block,
+522 | |             <T as pallet::Config>::RuntimeEvent,
+523 | |             <T as frame_system::Config>::Hash
+524 | |         > + sp_api::Core<<T as pallet::Config>::Block>
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `pallet::Config::Client`
+   --> ssmp_pallet/src/lib.rs:109:17
+    |
+99  |         type Client: HeaderBackend<<Self as pallet::Config>::Block>
+    |              ------ required by a bound in this associated type
+...
+109 |                 SSMPApi<<Self as pallet::Config>::Block, <Self as pallet::Config>::RuntimeEvent, <Self as pallet::Config>::Hash>
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Config::Client`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+543 |         S: Stream<Item = FinalityNotification<<T as pallet::Config>::Block>> + Unpin, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |                                                                                       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `EventRecord<<T as Config>::RuntimeEvent, <T as Config>::Hash>: Decode` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:265:14
+    |
+265 |             .events(block_hash)
+    |              ^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `parity_scale_codec::Decode` is not implemented for `frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>`
+    = note: required for `Vec<EventRecord<<T as Config>::RuntimeEvent, <T as Config>::Hash>>` to implement `parity_scale_codec::Decode`
+note: required by a bound in `runtime_api::SSMPApi::events`
+   --> ssmp_pallet/src/runtime_api.rs:18:59
+    |
+18  |         Vec<EventRecord<PalletRuntimeEvent, SystemHash>>: Decode,
+    |                                                           ^^^^^^ required by this bound in `SSMPApi::events`
+19  |     {
+20  |         fn events(at: <Block as BlockT>::Hash) -> Vec<EventRecord<PalletRuntimeEvent, SystemHash>>;
+    |            ------ required by a bound in this associated function
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16345525038429668402.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider extending the `where` clause, but there might be an alternative better way to express this requirement
+    |
+174 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>, frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>: parity_scale_codec::Decode
+    |                                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+   --> ssmp_pallet/src/observer/mod.rs:265:14
+    |
+265 |             .events(block_hash)
+    |              ^^^^^^------------ argument #2 of type `sp_core::H256` is missing
+    |
+note: method defined here
+   --> ssmp_pallet/src/runtime_api.rs:20:12
+    |
+20  |         fn events(at: <Block as BlockT>::Hash) -> Vec<EventRecord<PalletRuntimeEvent, SystemHash>>;
+    |            ^^^^^^ ---------------------------
+help: provide the argument
+    |
+265 |             .events(block_hash, /* sp_core::H256 */)
+    |                               +++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:269:21
+    |
+269 |             if self.event_matches_target(&event_record.event, target)? {
+    |                     ^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+259 |         <T as frame_system::Config>::Hash: sp_api::HashT, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:346:21
+    |
+346 |             if self.matches_watch_target(&block_ref, target).await? {
+    |                     ^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+317 |     ) -> Result<()> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                     +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:347:39
+    |
+347 |                 let transition = self.generate_state_transition(&block_ref, target)?;
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+317 |     ) -> Result<()> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                     +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+   --> ssmp_pallet/src/observer/mod.rs:386:14
+    |
+386 |             .events(block_hash)
+    |              ^^^^^^------------ argument #2 of type `sp_core::H256` is missing
+    |
+note: method defined here
+   --> ssmp_pallet/src/runtime_api.rs:20:12
+    |
+20  |         fn events(at: <Block as BlockT>::Hash) -> Vec<EventRecord<PalletRuntimeEvent, SystemHash>>;
+    |            ^^^^^^ ---------------------------
+help: provide the argument
+    |
+386 |             .events(block_hash, /* sp_core::H256 */)
+    |                               +++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:386:14
+    |
+386 |             .events(block_hash)
+    |              ^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as frame_system::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+382 |     > + sp_api::Core<<T as pallet::Config>::Block>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as frame_system::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                     +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0599]: the method `handle_finality_notification` exists for struct `Arc<SSMPObserver<T>>`, but its trait bounds were not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:546:43
+    |
+546 |             if let Err(e) = self.observer.handle_finality_notification(notification).await {
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method cannot be called on `Arc<SSMPObserver<T>>` due to unsatisfied trait bounds
+    |
+note: the following trait bounds were not satisfied:
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number = u32`
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<f64>`
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>`
+      `<T as frame_system::Config>::Hash: sp_api::HashT`
+   --> ssmp_pallet/src/observer/mod.rs:166:40
+    |
+164 | impl<T: Config + SystemConfig + Send + Sync + 'static> SSMPObserver<T> 
+    |                                                        ---------------
+165 | where
+166 |     <T as frame_system::Config>::Hash: sp_api::HashT,
+    |                                        ^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+167 |     NumberFor<<T as pallet::Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    |                                                          ^^^^^^^^^ unsatisfied trait bound introduced here
+168 |     <<T as pallet::Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+    |                                                               ^^^^^^^^^^^^ unsatisfied trait bound introduced here
+169 |     <<<T as pallet::Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + From<f64>,
+    |                                                                                        ^^^^^^^^^ unsatisfied trait bound introduced here
+...
+172 |         SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+
+error[E0599]: the function or associated item `ensure_observer` exists for struct `Pallet<T>`, but its trait bounds were not satisfied
+   --> ssmp_pallet/src/lib.rs:154:27
+    |
+123 |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `ensure_observer` not found for this struct
+...
+154 |             let _ = Self::ensure_observer();
+    |                           ^^^^^^^^^^^^^^^ function or associated item cannot be called on `Pallet<T>` due to unsatisfied trait bounds
+    |
+   ::: /home/tnxl/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:409:1
+    |
+409 | pub struct Vec<T, #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global> {
+    | ------------------------------------------------------------------------------------------------ doesn't satisfy `_: Decode`
+    |
+note: the following trait bounds were not satisfied:
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number = u32`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_api::Core<<T as pallet::Config>::Block>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>`
+      `T: Sync`
+      `T: std::marker::Send`
+      `std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>>: parity_scale_codec::Decode`
+   --> ssmp_pallet/src/lib.rs:198:12
+    |
+196 |     impl<T: Config> Pallet<T>
+    |                     ---------
+197 |     where
+198 |         T: Send + Sync,
+    |            ^^^^   ^^^^ unsatisfied trait bound introduced here
+    |            |
+    |            unsatisfied trait bound introduced here
+...
+201 |         <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+    |                                                           ^^^^^^^^^^^^ unsatisfied trait bound introduced here
+...
+204 |             SSMPApi<<T as Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+205 |             + sp_api::Core<<T as Config>::Block>
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+206 |             + sp_consensus_grandpa::GrandpaApi<<T as Config>::Block>,
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+207 |             std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, 
+208 |             <T as pallet::Config>::Hash>>: parity_scale_codec::Decode,
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+
+error[E0599]: the function or associated item `observer` exists for struct `Pallet<T>`, but its trait bounds were not satisfied
+   --> ssmp_pallet/src/lib.rs:183:43
+    |
+123 |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `observer` not found for this struct
+...
+183 |             if let Some(observer) = Self::observer() {
+    |                                           ^^^^^^^^ function or associated item cannot be called on `Pallet<T>` due to unsatisfied trait bounds
+    |
+   ::: /home/tnxl/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:409:1
+    |
+409 | pub struct Vec<T, #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global> {
+    | ------------------------------------------------------------------------------------------------ doesn't satisfy `_: Decode`
+    |
+note: the following trait bounds were not satisfied:
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number = u32`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_api::Core<<T as pallet::Config>::Block>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>`
+      `T: Sync`
+      `T: std::marker::Send`
+      `std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>>: parity_scale_codec::Decode`
+   --> ssmp_pallet/src/lib.rs:198:12
+    |
+196 |     impl<T: Config> Pallet<T>
+    |                     ---------
+197 |     where
+198 |         T: Send + Sync,
+    |            ^^^^   ^^^^ unsatisfied trait bound introduced here
+    |            |
+    |            unsatisfied trait bound introduced here
+...
+201 |         <<T as Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+    |                                                           ^^^^^^^^^^^^ unsatisfied trait bound introduced here
+...
+204 |             SSMPApi<<T as Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+205 |             + sp_api::Core<<T as Config>::Block>
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+206 |             + sp_consensus_grandpa::GrandpaApi<<T as Config>::Block>,
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+207 |             std::vec::Vec<frame_system::EventRecord<<T as pallet::Config>::RuntimeEvent, 
+208 |             <T as pallet::Config>::Hash>>: parity_scale_codec::Decode,
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+
+error[E0277]: the trait bound `u32: From<f64>` is not satisfied
+   --> ssmp_pallet/src/lib.rs:243:41
+    |
+243 |               let new_observer = Arc::new(SSMPObserver::new(
+    |  _________________________________________^
+244 | |                 Arc::new(client),
+245 | |                 proof_gen,
+246 | |                 router,
+247 | |             ));
+    | |_____________^ the trait `From<f64>` is not implemented for `u32`
+    |
+    = help: the following other types implement trait `From<T>`:
+              `u32` implements `From<HttpError>`
+              `u32` implements `From<HttpRequestId>`
+              `u32` implements `From<HttpRequestStatus>`
+              `u32` implements `From<Ipv4Addr>`
+              `u32` implements `From<KeyTypeId>`
+              `u32` implements `From<StorageKind>`
+              `u32` implements `From<bool>`
+              `u32` implements `From<char>`
+            and 15 others
+note: required by a bound in `observer::SSMPObserver::<T>::new`
+   --> ssmp_pallet/src/observer/mod.rs:169:88
+    |
+169 |     <<<T as pallet::Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + From<f64>,
+    |                                                                                        ^^^^^^^^^ required by this bound in `SSMPObserver::<T>::new`
+...
+177 |     pub fn new(
+    |            --- required by a bound in this associated function
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:200:9
+    |
+200 |         Self {
+    |         ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+181 |     ) -> Self where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |               +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:227:33
+    |
+227 |           let finality = Arc::new(GrandpaFinality::new_from_runtime(
+    |  _________________________________^
+228 | |             client.clone(),
+229 | |             Default::default(),
+230 | |             params,
+231 | |             chain_config,
+232 | |         ).map_err(|e| ProtocolError::Custom(format!("Failed to initialize finality: {}", e)))?);
+    | |______________________________________________________________________________________________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+223 |         <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:239:12
+    |
+239 |         Ok(Self {
+    |            ^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+223 |         <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:239:9
+    |
+239 |         Ok(Self {
+    |         ^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+223 |         <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:239:9
+    |
+239 | /         Ok(Self {
+240 | |             watch_targets: RwLock::new(Vec::new()),
+241 | |             proof_generator,
+242 | |             message_router: message_router.into().map(|router| {
+...   |
+248 | |             _phantom: PhantomData,
+249 | |         })
+    | |__________^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+223 |         <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>, <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>
+    |                                                                                                         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0277]: the trait bound `<... as ProvideRuntimeApi<...>>::Api: SSMPApi<..., ..., ...>` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:426:22
+    |
+426 |                 self.generic_event_match(event, target)
+    |                      ^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+    = help: the trait `runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>` is not implemented for `<<T as Config>::Client as ProvideRuntimeApi<...>>::Api`
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:134:5
+    |
+129 |   pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |              ------------ required by a bound in this struct
+...
+134 | /     crate::runtime_api::SSMPApi< 
+135 | |         <T as pallet::Config>::Block,
+136 | |         <T as pallet::Config>::RuntimeEvent,
+137 | |         <T as frame_system::Config>::Hash
+138 | |     > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    | |_____^ required by this bound in `SSMPObserver`
+    = note: the full name for the type has been written to '/home/tnxl/frostgate/target/debug/deps/ssmp_pallet-d17903dc00aea6df.long-type-16316636155359024439.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: consider further restricting the associated type
+    |
+397 |     ) -> Result<bool> where <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash> {
+    |                       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+error[E0599]: the method `handle_finality_notification` exists for reference `&SSMPObserver<T>`, but its trait bounds were not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:496:14
+    |
+496 |         self.handle_finality_notification(notification).await
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method cannot be called on `&SSMPObserver<T>` due to unsatisfied trait bounds
+    |
+note: the following trait bounds were not satisfied:
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number = u32`
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<f64>`
+      `<<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: runtime_api::SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>`
+      `<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>`
+      `<T as frame_system::Config>::Hash: sp_api::HashT`
+   --> ssmp_pallet/src/observer/mod.rs:166:40
+    |
+164 | impl<T: Config + SystemConfig + Send + Sync + 'static> SSMPObserver<T> 
+    |                                                        ---------------
+165 | where
+166 |     <T as frame_system::Config>::Hash: sp_api::HashT,
+    |                                        ^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+167 |     NumberFor<<T as pallet::Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    |                                                          ^^^^^^^^^ unsatisfied trait bound introduced here
+168 |     <<T as pallet::Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+    |                                                               ^^^^^^^^^^^^ unsatisfied trait bound introduced here
+169 |     <<<T as pallet::Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + From<f64>,
+    |                                                                                        ^^^^^^^^^ unsatisfied trait bound introduced here
+...
+172 |         SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+173 |         + sp_api::Core<<T as pallet::Config>::Block>
+174 |         + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound introduced here
+
+error[E0277]: the trait bound `<T as frame_system::Config>::Hash: sp_api::HashT` is not satisfied
+   --> ssmp_pallet/src/observer/mod.rs:528:16
+    |
+528 |         Self { observer }
+    |                ^^^^^^^^ the trait `sp_api::HashT` is not implemented for `<T as frame_system::Config>::Hash`
+    |
+note: required by a bound in `observer::SSMPObserver`
+   --> ssmp_pallet/src/observer/mod.rs:132:36
+    |
+129 | pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
+    |            ------------ required by a bound in this struct
+...
+132 | <T as frame_system::Config>::Hash: sp_api::HashT,
+    |                                    ^^^^^^^^^^^^^ required by this bound in `SSMPObserver`
+help: consider further restricting the associated type
+    |
+527 |     pub fn new(observer: Arc<SSMPObserver<T>>) -> Self where <T as frame_system::Config>::Hash: sp_api::HashT {
+    |                                                        ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Some errors have detailed explanations: E0061, E0277, E0599.
+For more information about an error, try `rustc --explain E0061`.
+warning: `ssmp-pallet` (lib) generated 4 warnings
+error: could not compile `ssmp-pallet` (lib) due to 46 previous errors; 4 warnings emitted

@@ -1,3 +1,5 @@
+//! This is a test file
+
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
@@ -5,9 +7,8 @@ use crate::mock::{new_test_ext, Test};
 use frame_support::assert_ok;
 use frost_protocol::{
     message::{FrostMessage, MessageType},
-    network::{Peer, PeerInfo, NetworkError, NetworkProtocol},
-    peer::NodeType,
-    Error as FrostError,
+    network::{Peer, PeerInfo, NetworkError, NetworkProtocol, peer::NodeType},
+    error::Error as FrostError,
     routing::router::{RouteStatus, RouteMetrics, RouteState},
     state::ChainId,
 };

@@ -222,7 +222,7 @@ where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
     NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
-    C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
+    C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync + 'static,
     C::Api: GrandpaApi<B>,
 {
     pub fn new(
@@ -251,7 +251,12 @@ where
         config: PredicateConfig,
         params: GrandpaVerificationParams,
         chain_config: ChainConfig,
-    ) -> Result<Self, GrandpaFinalityVerificationError> {
+    ) -> Result<Self, GrandpaFinalityVerificationError>
+        where 
+            NumberFor<B>: From<u64>, 
+            <<B as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>,
+            <<B as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<f64>,
+     {
         let verification_client = Arc::new(
             SubstrateVerificationClient::new_with_runtime_authorities(
                 client.clone(),
@@ -485,7 +490,7 @@ impl<C, B> SubstrateVerificationClient<C, B>
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
-    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy + From<f64>,
+    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
     C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
     C::Api: GrandpaApi<B>,
 {
@@ -831,10 +836,15 @@ impl<C: 'static, B> BaseFinalityVerificationClient for SubstrateVerificationClie
 where
     B: BlockT<Hash = H256>,
     B::Header: HeaderT<Hash = H256>,
-    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy + From<f64>,
+    NumberFor<B>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
     C: HeaderBackend<B> + BlockBackend<B> + ProvideRuntimeApi<B> + Send + Sync,
     C::Api: GrandpaApi<B>,
 {
+    // This is needed to downcast the verification client to the correct type
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn get_chain_head(&self) -> Result<FrostBlockRef, FinalityVerificationError> {
         let info = self.client.info();
         let hash_array: [u8; 32] = info.best_hash.as_ref()

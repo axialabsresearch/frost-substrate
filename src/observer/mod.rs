@@ -29,6 +29,7 @@ use frame_support::{
     pallet_prelude::{Member, BoundedVec, ConstU32},
 };
 use sp_runtime::RuntimeDebug;
+use crate::runtime_api::SSMPApi;
 
 use crate::{
     pallet::Config,
@@ -128,6 +129,13 @@ pub trait FinalityObserver: Send + Sync {
 pub struct SSMPObserver<T: Config + Send + Sync + 'static> 
 where   
 <T as pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
+<T as frame_system::Config>::Hash: sp_api::HashT,
+<<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:  
+    crate::runtime_api::SSMPApi< 
+        <T as pallet::Config>::Block,
+        <T as pallet::Config>::RuntimeEvent,
+        <T as frame_system::Config>::Hash
+    > + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
 {
     /// Registered watch targets
     watch_targets: RwLock<Vec<WatchTarget>>,
@@ -155,16 +163,22 @@ struct ProcessingStats {
 
 impl<T: Config + SystemConfig + Send + Sync + 'static> SSMPObserver<T> 
 where
-    <T as pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
-    NumberFor<<T as pallet::Config>::Block>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
-    T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
+    <T as frame_system::Config>::Hash: sp_api::HashT,
+    NumberFor<<T as pallet::Config>::Block>: Into<u64> + From<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    <<T as pallet::Config>::Block as BlockT>::Header: HeaderT<Number = u32>,
+    <<<T as pallet::Config>::Block as BlockT>::Header as HeaderT>::Number: From<u64> + From<f64>,
+    T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block> + HeaderBackend<<T as pallet::Config>::Block> + Send + Sync + 'static,
+    <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: 
+        SSMPApi<<T as pallet::Config>::Block, <T as pallet::Config>::RuntimeEvent, <T as pallet::Config>::Hash>
+        + sp_api::Core<<T as pallet::Config>::Block>
+        + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
 {
     /// Create new observer instance 
     pub fn new(
         client: Arc<T::Client>,
         proof_generator: Arc<dyn ProofGenerator>,
         message_router: T::MessageRouter,
-    ) -> Self where T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block> {
+    ) -> Self {
         let params = GrandpaVerificationParams::default();
         let chain_config = ChainConfig::default();
         let voter_set = VoterSet::new(Vec::new()).expect("Empty voter set is valid");
@@ -206,6 +220,7 @@ where
     where
         T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
         <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: GrandpaApi<<T as pallet::Config>::Block>,
+        <<<T as pallet::Config>::Block as sp_api::BlockT>::Header as sp_api::HeaderT>::Number: From<u64>
     {
         let params = GrandpaVerificationParams::default();
         
@@ -241,31 +256,21 @@ where
         target: &WatchTarget,
     ) -> Result<bool> 
     where
-        T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
-        <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_api::Core<<T as pallet::Config>::Block>,
+        <T as frame_system::Config>::Hash: sp_api::HashT,
     {
         let block_hash = H256::from_slice(&block_ref.hash);
         
-        // Get system events from the block
         let events = self.client
             .runtime_api()
-            .events(&block_hash)
-            .map_err(|e| ProtocolError::Custom(format!("Failed to get events: {}", e)))?;
-
-        // Decode events
-        let event_records: Vec<EventRecord<<T as pallet::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>> = 
-            events.into_iter().collect();
-
-        info!("Checking {} events against watch target", event_records.len());
-
-        // Check each event against our watch target
-        for event_record in event_records {
+            .events(block_hash)
+            .map_err(|e| ProtocolError::Custom(format!("Failed to fetch events: {}", e)))?;
+    
+        for event_record in events {
             if self.event_matches_target(&event_record.event, target)? {
-                info!("Found matching event for target: {:?}", target);
                 return Ok(true);
             }
         }
-
+    
         Ok(false)
     }
 
@@ -305,7 +310,6 @@ where
             target.target_chain.to_vec(),
         ))
     }
-
     /// Handle finality notification from GRANDPA
     pub async fn handle_finality_notification(
         &self,
@@ -370,20 +374,25 @@ where
     ) -> Result<Vec<EventRecord<<T as frame_system::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>>> 
     where
         T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
-        <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: sp_api::Core<<T as pallet::Config>::Block>,
+        <T::Client as ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api: 
+    SSMPApi<
+        <T as pallet::Config>::Block, // The Block type
+        <T as pallet::Config>::RuntimeEvent, // The Event type
+        <T as frame_system::Config>::Hash // The BlockHash type (Self::Hash in Config)
+    > + sp_api::Core<<T as pallet::Config>::Block>,
     {
         let events = self.client
             .runtime_api()
-            .events(&block_hash)
+            .events(block_hash)
             .map_err(|e| ProtocolError::Custom(format!("Failed to get events: {}", e)))?;
 
-        Ok(events.into_iter().collect())
+        Ok(events)
     }
 
     /// Check if a specific event matches the watch target
     fn event_matches_target(
         &self,
-        event: &<T as SystemConfig>::RuntimeEvent,
+        event: &<T as pallet::Config>::RuntimeEvent,
         target: &WatchTarget,
     ) -> Result<bool> {
         // This is where you'd implement your specific event matching logic
@@ -422,7 +431,7 @@ where
     /// Generic event matching fallback
     fn generic_event_match(
         &self,
-        event: &<T as SystemConfig>::RuntimeEvent,
+        event: &<T as pallet::Config>::RuntimeEvent,
         target: &WatchTarget,
     ) -> Result<bool> {
         // This is a placeholder implementation
@@ -454,16 +463,23 @@ where
         
         Ok(true)
     }
-
-
-
 }
 
 #[async_trait::async_trait]
-impl<T: Config + Send + Sync + 'static> FinalityObserver for SSMPObserver<T> 
+impl<T: Config + SystemConfig + Send + Sync + 'static> FinalityObserver for SSMPObserver<T>
 where
     <T as pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
     NumberFor<<T as pallet::Config>::Block>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    T::Client: ProvideRuntimeApi<<T as pallet::Config>::Block>,
+    T::Client: HeaderBackend<<T as pallet::Config>::Block>,
+    T::Client: BlockBackend<<T as pallet::Config>::Block>,
+    T::Client: Send + Sync + 'static, 
+    <<T as pallet::Config>::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:
+        crate::runtime_api::SSMPApi<
+            <T as pallet::Config>::Block,
+            <T as pallet::Config>::RuntimeEvent,
+            <T as frame_system::Config>::Hash
+        >,
 {
     async fn on_block_finalized(&self, block: BlockRef) -> Result<()> {
         let hash = <<T as pallet::Config>::Block as BlockT>::Hash::decode(&mut &block.hash[..])
@@ -485,6 +501,13 @@ where
 pub struct SSMPWorker<T: Config + Send + Sync + 'static> 
 where
     <T as pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
+    <T::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:
+        crate::runtime_api::SSMPApi<
+            <T as pallet::Config>::Block,
+            <T as pallet::Config>::RuntimeEvent,
+            <T as frame_system::Config>::Hash
+        > + sp_api::Core<<T as pallet::Config>::Block>
+        + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
 {
     observer: Arc<SSMPObserver<T>>,
 }
@@ -493,6 +516,13 @@ impl<T: Config + Send + Sync + 'static> SSMPWorker<T>
 where
     <T as pallet::Config>::Block: BlockT<Hash = H256> + HeaderT,
     NumberFor<<T as pallet::Config>::Block>: Into<u64> + SaturatedConversion + Saturating + Zero + Copy,
+    <T::Client as sp_api::ProvideRuntimeApi<<T as pallet::Config>::Block>>::Api:
+        crate::runtime_api::SSMPApi<
+            <T as pallet::Config>::Block,
+            <T as pallet::Config>::RuntimeEvent,
+            <T as frame_system::Config>::Hash
+        > + sp_api::Core<<T as pallet::Config>::Block>
+        + sp_consensus_grandpa::GrandpaApi<<T as pallet::Config>::Block>,
 {
     pub fn new(observer: Arc<SSMPObserver<T>>) -> Self {
         Self { observer }
@@ -518,4 +548,4 @@ where
             }
         }
     }
-} 
+}
